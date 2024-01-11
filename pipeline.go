@@ -19,8 +19,8 @@ func (h *Pipeline) Send(i *do.Injector) *Pipeline {
 	return h
 }
 
-func (h *Pipeline) Through(unit ...func(*do.Injector, func(*do.Injector))) *Pipeline {
-	h.pipelines = unit
+func (h *Pipeline) Through(unit func(*do.Injector, func(*do.Injector))) *Pipeline {
+	h.pipelines = append(h.pipelines, unit)
 	return h
 }
 

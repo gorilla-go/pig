@@ -20,8 +20,9 @@ func New() *Application {
 	}
 }
 
-func (a *Application) Use(m ...IMiddleware) {
+func (a *Application) Use(m ...IMiddleware) *Application {
 	a.middleware = append(a.middleware, m...)
+	return a
 }
 
 func (a *Application) Router(router IRouter) *Application {
