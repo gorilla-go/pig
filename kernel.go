@@ -3,7 +3,6 @@ package p_i_g
 import (
 	"context"
 	"github.com/samber/do"
-	"log"
 	"net/http"
 )
 
@@ -27,10 +26,9 @@ func (k *Kernel) Through(middleware []Middleware) *Kernel {
 
 func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 	defer func() {
-		if err := recover(); err != nil {
+		if errno := recover(); errno != nil {
 			errorHandler, err := do.Invoke[HttpErrorHandler](k.injector)
 			if err != nil {
-				log.Println(err)
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
