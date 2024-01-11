@@ -12,7 +12,7 @@ type ILogger interface {
 }
 
 type IRouter interface {
-	Route(string) func(*do.Injector)
+	Route(string) (func(*do.Injector), RouterParams)
 }
 
 type IMiddleware interface {

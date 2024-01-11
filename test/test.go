@@ -25,9 +25,15 @@ func (f *FilterMiddle) Handle(injector *do.Injector, next func(*do.Injector)) {
 
 func main() {
 	router := pig.NewRouter()
-	router.Bind(map[string]func(*do.Injector){
+	router.Map(map[string]func(*do.Injector){
 		"/": func(injector *do.Injector) {
 			fmt.Println("controller action")
+			response := do.MustInvoke[http.ResponseWriter](injector)
+			response.WriteHeader(200)
+			response.Write([]byte("Hello, World!"))
+		},
+		"/:id": func(injector *do.Injector) {
+			fmt.Println("controller action with params")
 			response := do.MustInvoke[http.ResponseWriter](injector)
 			response.WriteHeader(200)
 			response.Write([]byte("Hello, World!"))

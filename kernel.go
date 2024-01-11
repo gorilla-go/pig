@@ -43,14 +43,22 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 		}
 	}()
 
+	controllerAction, routerParams := k.router.Route(req.URL.Path)
+	if controllerAction == nil {
+		w.WriteHeader(http.StatusNotFound)
+		return
+	}
+
+	if routerParams != nil {
+		do.ProvideValue(k.injector, routerParams)
+	}
+
 	k.Inject(w, req)
 
 	pipeline := NewPipeline().Send(k.injector)
 	for _, middleware := range k.middleware {
 		pipeline.Through(middleware.Handle)
 	}
-
-	controllerAction := k.router.Route(req.URL.Path)
 	pipeline.Then(controllerAction)
 }
 
