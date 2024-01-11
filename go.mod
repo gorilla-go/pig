@@ -1,4 +1,4 @@
-module github.com/gorilla-go/p.i.g
+module github.com/gorilla-go/pig
 
 go 1.21.5
 

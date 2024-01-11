@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	pig "github.com/gorilla-go/p.i.g"
+	pig "github.com/gorilla-go/pig"
 	"github.com/samber/do"
 	"net/http"
 )

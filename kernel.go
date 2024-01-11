@@ -1,4 +1,4 @@
-package p_i_g
+package pig
 
 import (
 	"context"
