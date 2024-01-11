@@ -19,8 +19,8 @@ func New() *Application {
 	}
 }
 
-func (a *Application) Use(m Middleware) {
-	a.middleware = append(a.middleware, m)
+func (a *Application) Use(m ...Middleware) {
+	a.middleware = append(a.middleware, m...)
 }
 
 func (a *Application) Start() error {

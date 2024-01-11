@@ -18,3 +18,7 @@ type Router interface {
 type Middleware interface {
 	Handle(*do.Injector, func(*do.Injector))
 }
+
+type HttpErrorHandler interface {
+	Handle(error, *do.Injector)
+}

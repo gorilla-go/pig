@@ -25,6 +25,18 @@ func (k *Kernel) Through(middleware []Middleware) *Kernel {
 }
 
 func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
+	defer func() {
+		if err := recover(); err != nil {
+			errorHandler, err := do.Invoke[HttpErrorHandler](k.injector)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				return
+			}
+
+			errorHandler.Handle(err.(error), k.injector)
+		}
+	}()
+
 	k.Inject(w, req)
 
 	pipeline := NewPipeline().Send(k.injector)
