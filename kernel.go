@@ -9,17 +9,23 @@ import (
 type Kernel struct {
 	context    context.Context
 	injector   *do.Injector
-	middleware []Middleware
+	middleware []IMiddleware
+	router     IRouter
 }
 
-func NewKernel() *Kernel {
+func NewKernel(r IRouter) *Kernel {
+	if r == nil {
+		r = NewRouter()
+	}
+
 	return &Kernel{
 		injector: do.New(),
 		context:  context.Background(),
+		router:   r,
 	}
 }
 
-func (k *Kernel) Through(middleware []Middleware) *Kernel {
+func (k *Kernel) Through(middleware []IMiddleware) *Kernel {
 	k.middleware = middleware
 	return k
 }
@@ -27,7 +33,7 @@ func (k *Kernel) Through(middleware []Middleware) *Kernel {
 func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 	defer func() {
 		if errno := recover(); errno != nil {
-			errorHandler, err := do.Invoke[HttpErrorHandler](k.injector)
+			errorHandler, err := do.Invoke[IHttpErrorHandler](k.injector)
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
@@ -44,17 +50,7 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 		pipeline.Through(middleware.Handle)
 	}
 
-	_, err := do.Invoke[Logger](k.injector)
-	if err != nil {
-		panic(err)
-	}
-
-	router, err := do.Invoke[Router](k.injector)
-	if err != nil {
-		panic(err)
-	}
-
-	controllerAction := router.Route(req.URL.Path)
+	controllerAction := k.router.Route(req.URL.Path)
 	pipeline.Then(controllerAction)
 }
 
@@ -67,5 +63,8 @@ func (k *Kernel) Inject(w http.ResponseWriter, req *http.Request) {
 	})
 	do.Provide(k.injector, func(*do.Injector) (context.Context, error) {
 		return k.context, nil
+	})
+	do.Provide(k.injector, func(*do.Injector) (IRouter, error) {
+		return k.router, nil
 	})
 }

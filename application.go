@@ -9,7 +9,8 @@ import (
 type Application struct {
 	port       int
 	address    net.IP
-	middleware []Middleware
+	middleware []IMiddleware
+	router     IRouter
 }
 
 func New() *Application {
@@ -19,13 +20,18 @@ func New() *Application {
 	}
 }
 
-func (a *Application) Use(m ...Middleware) {
+func (a *Application) Use(m ...IMiddleware) {
 	a.middleware = append(a.middleware, m...)
+}
+
+func (a *Application) Router(router IRouter) *Application {
+	a.router = router
+	return a
 }
 
 func (a *Application) Start() error {
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		NewKernel().Through(a.middleware).Handle(w, req)
+		NewKernel(a.router).Through(a.middleware).Handle(w, req)
 	})
 
 	err := http.ListenAndServe(
