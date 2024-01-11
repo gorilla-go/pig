@@ -15,7 +15,7 @@ type Application struct {
 func New() *Application {
 	return &Application{
 		port:    8080,
-		address: net.IPv4(127, 0, 0, 1),
+		address: net.IPv4(0, 0, 0, 0),
 	}
 }
 
