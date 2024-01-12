@@ -22,3 +22,8 @@ type IMiddleware interface {
 type IHttpErrorHandler interface {
 	Handle(error, *do.Injector)
 }
+
+type ISession[T any] interface {
+	Get(string) T
+	Set(string, T)
+}
