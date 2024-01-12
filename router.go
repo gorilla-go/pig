@@ -7,6 +7,7 @@ import (
 
 type Router struct {
 	regRouteMap map[string]func(*do.Injector)
+	missRoute   func(*do.Injector)
 }
 
 type RouterParams map[string]string
@@ -26,6 +27,11 @@ func (r *Router) Map(regMap map[string]func(*do.Injector)) {
 		}
 	}
 	r.regRouteMap = regMap
+}
+
+func (r *Router) Miss(f func(*do.Injector)) *Router {
+	r.missRoute = f
+	return r
 }
 
 func (r *Router) Route(path string) (func(*do.Injector), RouterParams) {
@@ -55,5 +61,10 @@ func (r *Router) Route(path string) (func(*do.Injector), RouterParams) {
 			return fn, routerParams
 		}
 	}
+
+	if r.missRoute != nil {
+		return r.missRoute, nil
+	}
+
 	return nil, nil
 }
