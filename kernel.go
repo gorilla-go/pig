@@ -7,10 +7,11 @@ import (
 )
 
 type Kernel struct {
-	context    context.Context
-	injector   *do.Injector
-	middleware []IMiddleware
-	router     IRouter
+	context      context.Context
+	injector     *do.Injector
+	middleware   []IMiddleware
+	router       IRouter
+	errorHandler IHttpErrorHandler
 }
 
 func NewKernel(r IRouter) *Kernel {
@@ -30,16 +31,26 @@ func (k *Kernel) Through(middleware []IMiddleware) *Kernel {
 	return k
 }
 
+func (k *Kernel) ErrorHandler(h IHttpErrorHandler) *Kernel {
+	k.errorHandler = h
+	return k
+}
+
 func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 	defer func() {
 		if errno := recover(); errno != nil {
 			errorHandler, err := do.Invoke[IHttpErrorHandler](k.injector)
 			if err != nil {
+				if k.errorHandler != nil {
+					k.errorHandler.Handle(errno.(error), k.injector)
+					return
+				}
+
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
-			errorHandler.Handle(err.(error), k.injector)
+			errorHandler.Handle(errno.(error), k.injector)
 		}
 	}()
 

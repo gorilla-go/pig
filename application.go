@@ -7,10 +7,11 @@ import (
 )
 
 type Application struct {
-	port       int
-	address    net.IP
-	middleware []IMiddleware
-	router     IRouter
+	port         int
+	address      net.IP
+	middleware   []IMiddleware
+	router       IRouter
+	errorHandler IHttpErrorHandler
 }
 
 func New() *Application {
@@ -30,9 +31,14 @@ func (a *Application) Router(router IRouter) *Application {
 	return a
 }
 
+func (a *Application) ErrorHandler(h IHttpErrorHandler) *Application {
+	a.errorHandler = h
+	return a
+}
+
 func (a *Application) Start() error {
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
-		NewKernel(a.router).Through(a.middleware).Handle(w, req)
+		NewKernel(a.router).ErrorHandler(a.errorHandler).Through(a.middleware).Handle(w, req)
 	})
 
 	err := http.ListenAndServe(
