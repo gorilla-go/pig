@@ -6,15 +6,15 @@ import (
 )
 
 type Kernel struct {
-	injector   *do.Injector
 	middleware []IMiddleware
 	router     IRouter
+	context    *Context
 }
 
 func NewKernel(r IRouter) *Kernel {
 	return &Kernel{
-		injector: do.New(),
-		router:   r,
+		router:  r,
+		context: NewContext(),
 	}
 }
 
@@ -26,13 +26,13 @@ func (k *Kernel) Through(middleware []IMiddleware) *Kernel {
 func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 	defer func() {
 		if errno := recover(); errno != nil {
-			errorHandler, err := do.Invoke[IHttpErrorHandler](k.injector)
+			errorHandler, err := do.Invoke[IHttpErrorHandler](k.context.Injector())
 			if err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
 
-			errorHandler.Handle(errno.(error), k.injector)
+			errorHandler.Handle(errno.(error), k.context)
 			return
 		}
 	}()
@@ -44,12 +44,12 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if routerParams != nil {
-		do.ProvideValue(k.injector, routerParams)
+		do.ProvideValue(k.context.Injector(), routerParams)
 	}
 
 	k.Inject(w, req)
 
-	pipeline := NewPipeline().Send(k.injector)
+	pipeline := NewPipeline[*Context]().Send(k.context)
 	for _, middleware := range k.middleware {
 		pipeline.Through(middleware.Handle)
 	}
@@ -57,13 +57,13 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 }
 
 func (k *Kernel) Inject(w http.ResponseWriter, req *http.Request) {
-	do.Provide(k.injector, func(*do.Injector) (http.ResponseWriter, error) {
+	do.Provide(k.context.Injector(), func(*do.Injector) (http.ResponseWriter, error) {
 		return w, nil
 	})
-	do.Provide(k.injector, func(*do.Injector) (*http.Request, error) {
+	do.Provide(k.context.Injector(), func(*do.Injector) (*http.Request, error) {
 		return req, nil
 	})
-	do.Provide(k.injector, func(*do.Injector) (IRouter, error) {
+	do.Provide(k.context.Injector(), func(*do.Injector) (IRouter, error) {
 		return k.router, nil
 	})
 }

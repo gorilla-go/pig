@@ -1,22 +1,21 @@
 package pig
 
 import (
-	"github.com/samber/do"
 	"strings"
 )
 
 type Router struct {
-	regRouteMap map[string]func(*do.Injector)
-	missRoute   func(*do.Injector)
+	regRouteMap map[string]func(*Context)
+	missRoute   func(*Context)
 }
 
-type RouterParams map[string]string
+type RouterParams ReqParams
 
 func NewRouter() *Router {
 	return &Router{}
 }
 
-func (r *Router) Map(regMap map[string]func(*do.Injector)) {
+func (r *Router) Map(regMap map[string]func(*Context)) {
 	for s, f := range regMap {
 		if len(s) == 0 {
 			panic("route path can't be empty")
@@ -29,12 +28,12 @@ func (r *Router) Map(regMap map[string]func(*do.Injector)) {
 	r.regRouteMap = regMap
 }
 
-func (r *Router) Miss(f func(*do.Injector)) *Router {
+func (r *Router) Miss(f func(*Context)) *Router {
 	r.missRoute = f
 	return r
 }
 
-func (r *Router) Route(path string) (func(*do.Injector), RouterParams) {
+func (r *Router) Route(path string) (func(*Context), RouterParams) {
 	for regexp, fn := range r.regRouteMap {
 		regexpTrim := strings.Trim(regexp, "/")
 		path = strings.Trim(path, "/")
@@ -51,10 +50,10 @@ func (r *Router) Route(path string) (func(*do.Injector), RouterParams) {
 				continue
 			}
 
-			routerParams := make(map[string]string)
+			routerParams := make(RouterParams)
 			for i, part := range regexpParts {
 				if part[0] == ':' {
-					routerParams[part[1:]] = pathParts[i]
+					routerParams[part[1:]] = NewReqParamV([]string{pathParts[i]})
 					continue
 				}
 			}

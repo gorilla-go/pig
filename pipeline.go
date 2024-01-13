@@ -1,41 +1,40 @@
 package pig
 
 import (
-	"github.com/samber/do"
 	"github.com/samber/lo"
 )
 
-type Pipeline struct {
-	injector  *do.Injector
-	pipelines []func(*do.Injector, func(*do.Injector))
+type Pipeline[T any] struct {
+	injector  T
+	pipelines []func(T, func(T))
 }
 
-func NewPipeline() *Pipeline {
-	return &Pipeline{}
+func NewPipeline[T any]() *Pipeline[T] {
+	return &Pipeline[T]{}
 }
 
-func (h *Pipeline) Send(i *do.Injector) *Pipeline {
+func (h *Pipeline[T]) Send(i T) *Pipeline[T] {
 	h.injector = i
 	return h
 }
 
-func (h *Pipeline) Through(unit func(*do.Injector, func(*do.Injector))) *Pipeline {
+func (h *Pipeline[T]) Through(unit func(T, func(T))) *Pipeline[T] {
 	h.pipelines = append(h.pipelines, unit)
 	return h
 }
 
-func (h *Pipeline) Then(p func(*do.Injector)) {
+func (h *Pipeline[T]) Then(p func(T)) {
 	f := lo.Reduce(
 		h.pipelines,
 		func(
-			f func(*do.Injector),
+			f func(T),
 			f2 func(
-				*do.Injector,
-				func(*do.Injector),
+				T,
+				func(T),
 			),
 			i int,
-		) func(*do.Injector) {
-			return func(i *do.Injector) {
+		) func(T) {
+			return func(i T) {
 				f2(i, f)
 			}
 		},

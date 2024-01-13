@@ -1,9 +1,5 @@
 package pig
 
-import (
-	"github.com/samber/do"
-)
-
 type ILogger interface {
 	Info(message string)
 	Debug(message string)
@@ -12,15 +8,15 @@ type ILogger interface {
 }
 
 type IRouter interface {
-	Route(string) (func(*do.Injector), RouterParams)
+	Route(string) (func(*Context), RouterParams)
 }
 
 type IMiddleware interface {
-	Handle(*do.Injector, func(*do.Injector))
+	Handle(*Context, func(*Context))
 }
 
 type IHttpErrorHandler interface {
-	Handle(error, *do.Injector)
+	Handle(error, *Context)
 }
 
 type ISession[T any] interface {
