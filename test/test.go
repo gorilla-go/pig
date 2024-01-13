@@ -8,7 +8,6 @@ func main() {
 	router := pig.NewRouter()
 	router.GET("/", func(c *pig.Context) {
 		postId := c.ParamVar()["post_id"].Int()
-		_ = c.FileVar()["ok"]
 		c.Json(map[string]interface{}{
 			"post_id": postId,
 		})

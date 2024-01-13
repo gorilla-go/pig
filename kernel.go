@@ -43,7 +43,7 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	if routerParams != nil {
+	if routerParams != nil && len(routerParams) > 0 {
 		do.ProvideValue(k.context.Injector(), routerParams)
 	}
 

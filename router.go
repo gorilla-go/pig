@@ -1,14 +1,12 @@
 package pig
 
 import (
+	"github.com/gorilla-go/pig/foundation"
 	"strings"
 )
 
-type RequestMethodType string
-type RouteIndex map[string]func(*Context)
-
 type Router struct {
-	regRouteMap map[string]RouteIndex
+	regRouteMap *foundation.LinkedHashMap[string, *foundation.LinkedHashMap[string, func(*Context)]]
 	missRoute   func(*Context)
 }
 
@@ -16,16 +14,22 @@ type RouterParams ReqParams
 
 func NewRouter() *Router {
 	return &Router{
-		regRouteMap: make(map[string]RouteIndex),
+		regRouteMap: &foundation.LinkedHashMap[string, *foundation.LinkedHashMap[string, func(*Context)]]{
+			K: make([]string, 0),
+			M: make(map[string]*foundation.LinkedHashMap[string, func(*Context)]),
+		},
 	}
 }
 
 func (r *Router) addRoute(t string, path string, f func(*Context)) {
-	if _, ok := r.regRouteMap[path]; !ok {
-		r.regRouteMap[path] = make(RouteIndex)
+	t = strings.ToUpper(t)
+	if r.regRouteMap.ContainsKey(path) == false {
+		r.regRouteMap.Put(path, &foundation.LinkedHashMap[string, func(*Context)]{
+			K: make([]string, 0),
+			M: make(map[string]func(*Context)),
+		})
 	}
-
-	r.regRouteMap[path][t] = f
+	r.regRouteMap.Get(path).Put(t, f)
 }
 
 func (r *Router) GET(path string, f func(*Context)) {
@@ -75,14 +79,17 @@ func (r *Router) Miss(f func(*Context)) *Router {
 
 func (r *Router) Route(path string, requestMethod string) (func(*Context), RouterParams) {
 	requestMethod = strings.ToUpper(requestMethod)
+	var fn func(*Context) = nil
+	routerParams := make(RouterParams)
 
-	for regexp, routeIndex := range r.regRouteMap {
-		fn, ok := routeIndex[requestMethod]
+	r.regRouteMap.ForEach(func(regexp string, methodMap *foundation.LinkedHashMap[string, func(*Context)]) bool {
+		ok := methodMap.ContainsKey(requestMethod)
 		if !ok {
-			if _, ok := routeIndex["ANY"]; ok {
-				fn = routeIndex["ANY"]
+			ok = methodMap.ContainsKey("ANY")
+			if ok {
+				fn = methodMap.Get("ANY")
 			} else {
-				continue
+				return false
 			}
 		}
 
@@ -91,30 +98,30 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 
 		patternMode := strings.Contains(regexpTrim, ":")
 		if !patternMode && regexpTrim == path {
-			return fn, nil
+			fn = methodMap.Get(requestMethod)
+			return false
 		}
 
 		if patternMode {
 			regexpParts := strings.Split(regexpTrim, "/")
 			pathParts := strings.Split(path, "/")
 			if len(regexpParts) != len(pathParts) {
-				continue
+				return false
 			}
 
-			routerParams := make(RouterParams)
 			for i, part := range regexpParts {
 				if part[0] == ':' {
 					routerParams[part[1:]] = NewReqParamV([]string{pathParts[i]})
 					continue
 				}
 			}
-			return fn, routerParams
+			fn = methodMap.Get(requestMethod)
 		}
-	}
+		return true
+	})
 
 	if r.missRoute != nil {
 		return r.missRoute, nil
 	}
-
-	return nil, nil
+	return fn, routerParams
 }

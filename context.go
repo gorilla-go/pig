@@ -54,11 +54,9 @@ func (c *Context) ParamVar() map[string]*ReqParamV {
 	c.paramOnce.Do(func() {
 		c.paramVar = make(map[string]*ReqParamV)
 
-		request, err := do.Invoke[*http.Request](c.Injector())
-		if err == nil {
-			for n, v := range request.URL.Query() {
-				c.paramVar[n] = NewReqParamV(v)
-			}
+		request := do.MustInvoke[*http.Request](c.Injector())
+		for n, v := range request.URL.Query() {
+			c.paramVar[n] = NewReqParamV(v)
 		}
 
 		routerParams := c.routerParams()
@@ -120,7 +118,7 @@ func (c *Context) FileVar() map[string]*File {
 
 		multipartReader, err := request.MultipartReader()
 		if err != nil {
-			panic(err)
+			return
 		}
 		for true {
 			part, err := multipartReader.NextPart()
