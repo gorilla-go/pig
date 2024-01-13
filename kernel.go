@@ -37,7 +37,7 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 		}
 	}()
 
-	controllerAction, routerParams := k.router.Route(req.URL.Path)
+	controllerAction, routerParams := k.router.Route(req.URL.Path, req.Method)
 	if controllerAction == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
