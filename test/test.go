@@ -7,7 +7,10 @@ import (
 func main() {
 	router := pig.NewRouter()
 	router.GET("/", func(ctx *pig.Context) {
-		panic("test panic")
+		postId := ctx.ParamVar()["post_id"].Int()
+		ctx.Json(map[string]interface{}{
+			"post_id": postId,
+		})
 	})
 
 	err := pig.New().Router(router).Start()
