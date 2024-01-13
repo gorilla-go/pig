@@ -6,9 +6,16 @@ import (
 
 func main() {
 	router := pig.NewRouter()
-	router.GET("/", func(ctx *pig.Context) {
-		postId := ctx.ParamVar()["post_id"].Int()
-		ctx.Json(map[string]interface{}{
+	router.GET("/", func(c *pig.Context) {
+		postId := c.ParamVar()["post_id"].Int()
+		c.Json(map[string]interface{}{
+			"post_id": postId,
+		})
+	})
+
+	router.GET("/:id", func(context *pig.Context) {
+		postId := context.ParamVar()["id"].Int()
+		context.Json(map[string]interface{}{
 			"post_id": postId,
 		})
 	})
