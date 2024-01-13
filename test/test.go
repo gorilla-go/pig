@@ -16,8 +16,8 @@ func main() {
 			response.Write([]byte("Hello, World!"))
 		},
 		"/:id": func(ctx *pig.Context) {
-			fmt.Println(ctx.RouterParams())
-			fmt.Println(ctx.Params())
+			fmt.Println("ok")
+			fmt.Println(ctx.ParamVar()["id"].ToString())
 		},
 	})
 	router.Miss(func(ctx *pig.Context) {
