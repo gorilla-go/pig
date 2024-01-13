@@ -11,13 +11,11 @@ func main() {
 	router := pig.NewRouter()
 	router.Map(map[string]func(*pig.Context){
 		"/": func(ctx *pig.Context) {
-			response := do.MustInvoke[http.ResponseWriter](ctx.Injector())
-			response.WriteHeader(200)
-			response.Write([]byte("Hello, World!"))
+			ctx.ResponseWriter().Write([]byte("Hello World!"))
 		},
 		"/:id": func(ctx *pig.Context) {
-			fmt.Println("ok")
-			fmt.Println(ctx.ParamVar()["id"].ToString())
+			fmt.Println(ctx.ParamVar()["id"].TrimString())
+			fmt.Println(ctx.ParamVar()["q"].Bool())
 		},
 	})
 	router.Miss(func(ctx *pig.Context) {

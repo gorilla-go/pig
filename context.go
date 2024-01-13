@@ -33,6 +33,14 @@ func (c *Context) routerParams() RouterParams {
 	return routerParams
 }
 
+func (c *Context) Request() *http.Request {
+	return do.MustInvoke[*http.Request](c.injector)
+}
+
+func (c *Context) ResponseWriter() http.ResponseWriter {
+	return do.MustInvoke[http.ResponseWriter](c.injector)
+}
+
 func (c *Context) ParamVar() map[string]*ReqParamV {
 	c.paramOnce.Do(func() {
 		c.paramVar = make(map[string]*ReqParamV)

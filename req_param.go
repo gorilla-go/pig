@@ -1,6 +1,9 @@
 package pig
 
-import "strconv"
+import (
+	"strconv"
+	"strings"
+)
 
 type ReqParams map[string]*ReqParamV
 
@@ -28,11 +31,15 @@ func NewReqParamV(value []string) *ReqParamV {
 	}
 }
 
-func (r *ReqParamAtom) ToString() string {
+func (r *ReqParamAtom) String() string {
 	return r.v
 }
 
-func (r *ReqParamAtom) ToInt() int {
+func (r *ReqParamAtom) TrimString() string {
+	return strings.TrimSpace(r.v)
+}
+
+func (r *ReqParamAtom) Int() int {
 	i, err := strconv.Atoi(r.v)
 	if err != nil {
 		panic(err)
@@ -40,7 +47,7 @@ func (r *ReqParamAtom) ToInt() int {
 	return i
 }
 
-func (r *ReqParamAtom) ToInt64() int64 {
+func (r *ReqParamAtom) Int64() int64 {
 	i, err := strconv.ParseInt(r.v, 10, 64)
 	if err != nil {
 		panic(err)
@@ -48,7 +55,7 @@ func (r *ReqParamAtom) ToInt64() int64 {
 	return i
 }
 
-func (r *ReqParamAtom) ToFloat64() float64 {
+func (r *ReqParamAtom) Float64() float64 {
 	i, err := strconv.ParseFloat(r.v, 64)
 	if err != nil {
 		panic(err)
@@ -56,7 +63,7 @@ func (r *ReqParamAtom) ToFloat64() float64 {
 	return i
 }
 
-func (r *ReqParamAtom) ToBool() bool {
+func (r *ReqParamAtom) Bool() bool {
 	i, err := strconv.ParseBool(r.v)
 	if err != nil {
 		panic(err)
@@ -64,34 +71,38 @@ func (r *ReqParamAtom) ToBool() bool {
 	return i
 }
 
-func (r *ReqParamAtom) ToBytes() []byte {
+func (r *ReqParamAtom) Bytes() []byte {
 	return []byte(r.v)
 }
 
-func (r *ReqParamV) ToString() string {
-	return r.v[0].ToString()
+func (r *ReqParamV) String() string {
+	return r.v[0].String()
 }
 
-func (r *ReqParamV) ToInt() int {
-	return r.v[0].ToInt()
+func (r *ReqParamV) TrimString() string {
+	return r.v[0].TrimString()
 }
 
-func (r *ReqParamV) ToInt64() int64 {
-	return r.v[0].ToInt64()
+func (r *ReqParamV) Int() int {
+	return r.v[0].Int()
 }
 
-func (r *ReqParamV) ToFloat64() float64 {
-	return r.v[0].ToFloat64()
+func (r *ReqParamV) Int64() int64 {
+	return r.v[0].Int64()
 }
 
-func (r *ReqParamV) ToBool() bool {
-	return r.v[0].ToBool()
+func (r *ReqParamV) Float64() float64 {
+	return r.v[0].Float64()
 }
 
-func (r *ReqParamV) ToBytes() []byte {
-	return r.v[0].ToBytes()
+func (r *ReqParamV) Bool() bool {
+	return r.v[0].Bool()
 }
 
-func (r *ReqParamV) ToReqParamAtoms() []*ReqParamAtom {
+func (r *ReqParamV) Bytes() []byte {
+	return r.v[0].Bytes()
+}
+
+func (r *ReqParamV) ReqParamAtoms() []*ReqParamAtom {
 	return r.v
 }
