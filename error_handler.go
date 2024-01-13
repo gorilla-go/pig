@@ -1,6 +1,9 @@
 package pig
 
-import "fmt"
+import (
+	"fmt"
+	"runtime/debug"
+)
 
 type ErrorHandler struct {
 }
@@ -14,7 +17,7 @@ func (e ErrorHandler) Handle(err any, context *Context) {
 	context.ResponseWriter().WriteHeader(500)
 	errno := fmt.Sprintf("%v", err)
 	context.Logger().Warning(errno)
-	_, err = context.ResponseWriter().Write([]byte(errno))
+	_, err = context.ResponseWriter().Write(debug.Stack())
 	if err != nil {
 		panic(err)
 	}
