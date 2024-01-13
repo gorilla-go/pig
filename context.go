@@ -1,7 +1,9 @@
 package pig
 
 import (
+	"bytes"
 	"github.com/samber/do"
+	"io"
 	"net/http"
 	"sync"
 )
@@ -67,14 +69,40 @@ func (c *Context) PostVar() map[string]*ReqParamV {
 	c.postOnce.Do(func() {
 		c.postVar = make(map[string]*ReqParamV)
 
-		request, err := do.Invoke[*http.Request](c.Injector())
-		if err == nil {
-			err := request.ParseForm()
+		request := do.MustInvoke[*http.Request](c.Injector())
+		err := request.ParseForm()
+		if err != nil {
+			panic(err)
+		}
+		for n, v := range request.PostForm {
+			c.postVar[n] = NewReqParamV(v)
+		}
+
+		if len(c.postVar) == 0 {
+			multipartReader, err := request.MultipartReader()
 			if err != nil {
 				panic(err)
 			}
-			for n, v := range request.PostForm {
-				c.postVar[n] = NewReqParamV(v)
+
+			for true {
+				part, err := multipartReader.NextPart()
+				if err != nil {
+					if err == io.EOF {
+						break
+					}
+					panic(err)
+				}
+
+				fileName := part.FileName()
+				formName := part.FormName()
+				if len(formName) > 0 && fileName == "" {
+					buf := new(bytes.Buffer)
+					_, err := buf.ReadFrom(part)
+					if err != nil {
+						panic(err)
+					}
+					c.postVar[formName] = NewReqParamV([]string{buf.String()})
+				}
 			}
 		}
 	})
