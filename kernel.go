@@ -32,7 +32,7 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 				return
 			}
 
-			errorHandler.Handle(errno.(error), k.context)
+			errorHandler.Handle(errno, k.context)
 			return
 		}
 	}()
@@ -50,6 +50,8 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 	k.Inject(w, req)
 
 	pipeline := NewPipeline[*Context]().Send(k.context)
+	pipeline.Through(NewSysMiddleware().Handle)
+
 	for _, middleware := range k.middleware {
 		pipeline.Through(middleware.Handle)
 	}

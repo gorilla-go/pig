@@ -16,7 +16,7 @@ type IMiddleware interface {
 }
 
 type IHttpErrorHandler interface {
-	Handle(error, *Context)
+	Handle(any, *Context)
 }
 
 type ISession[T any] interface {

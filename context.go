@@ -214,3 +214,11 @@ func (c *Context) Json(o any) {
 		panic(err)
 	}
 }
+
+func (c *Context) Logger() ILogger {
+	logger, err := do.Invoke[ILogger](c.Injector())
+	if err != nil {
+		panic(err)
+	}
+	return logger
+}
