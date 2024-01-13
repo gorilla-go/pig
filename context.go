@@ -2,9 +2,13 @@ package pig
 
 import (
 	"bytes"
+	"github.com/bwmarrin/snowflake"
 	"github.com/samber/do"
 	"io"
+	"math/rand"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
 )
 
@@ -14,6 +18,8 @@ type Context struct {
 	paramOnce sync.Once
 	postVar   map[string]*ReqParamV
 	postOnce  sync.Once
+	fileVar   map[string]*File
+	fileOnce  sync.Once
 }
 
 func NewContext() *Context {
@@ -68,7 +74,6 @@ func (c *Context) ParamVar() map[string]*ReqParamV {
 func (c *Context) PostVar() map[string]*ReqParamV {
 	c.postOnce.Do(func() {
 		c.postVar = make(map[string]*ReqParamV)
-
 		request := do.MustInvoke[*http.Request](c.Injector())
 		err := request.ParseForm()
 		if err != nil {
@@ -83,7 +88,6 @@ func (c *Context) PostVar() map[string]*ReqParamV {
 			if err != nil {
 				panic(err)
 			}
-
 			for true {
 				part, err := multipartReader.NextPart()
 				if err != nil {
@@ -92,7 +96,6 @@ func (c *Context) PostVar() map[string]*ReqParamV {
 					}
 					panic(err)
 				}
-
 				fileName := part.FileName()
 				formName := part.FormName()
 				if len(formName) > 0 && fileName == "" {
@@ -106,6 +109,95 @@ func (c *Context) PostVar() map[string]*ReqParamV {
 			}
 		}
 	})
-
 	return c.postVar
+}
+
+func (c *Context) FileVar() map[string]*File {
+	c.fileOnce.Do(func() {
+		request := c.Request()
+		c.fileVar = make(map[string]*File)
+
+		multipartReader, err := request.MultipartReader()
+		if err != nil {
+			panic(err)
+		}
+		for true {
+			part, err := multipartReader.NextPart()
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				panic(err)
+			}
+			fileName := part.FileName()
+			formName := part.FormName()
+			if len(formName) > 0 && len(fileName) > 0 {
+				ext := filepath.Ext(fileName)
+				buf := new(bytes.Buffer)
+				_, err := buf.ReadFrom(part)
+				if err != nil {
+					panic(err)
+				}
+
+				// save file at tmp dir
+				node, err := snowflake.NewNode(int64(rand.Intn(100)))
+				if err != nil {
+					panic(err)
+				}
+				fileId := node.Generate().Bytes()
+				filename := os.TempDir() + string(fileId) + ext
+
+				file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0666)
+				if err != nil {
+					panic(err)
+				}
+
+				_, err = file.Write(buf.Bytes())
+				if err != nil {
+					panic(err)
+				}
+
+				err = file.Close()
+				if err != nil {
+					panic(err)
+				}
+
+				c.fileVar[formName] = &File{
+					FilePath:    filename,
+					ContentType: part.Header.Get("Content-Type"),
+				}
+			}
+		}
+	})
+	return c.fileVar
+}
+
+func (c *Context) Download(file *File) {
+	// download file
+	_, err := os.Stat(file.FilePath)
+	if err != nil {
+		panic(err)
+	}
+
+	f, err := os.Open(file.FilePath)
+	if err != nil {
+		panic(err)
+	}
+
+	defer func() {
+		err := f.Close()
+		if err != nil {
+			panic(err)
+		}
+	}()
+
+	c.ResponseWriter().Header().Set("Content-Type", file.ContentType)
+	c.ResponseWriter().Header().Set(
+		"Content-Disposition",
+		"attachment; filename="+filepath.Base(file.FilePath),
+	)
+	_, err = io.Copy(c.ResponseWriter(), f)
+	if err != nil {
+		panic(err)
+	}
 }
