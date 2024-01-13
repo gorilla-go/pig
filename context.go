@@ -172,7 +172,7 @@ func (c *Context) FileVar() map[string]*File {
 	return c.fileVar
 }
 
-func (c *Context) Download(file *File) {
+func (c *Context) Download(file *File, basename string) {
 	// download file
 	_, err := os.Stat(file.FilePath)
 	if err != nil {
@@ -194,7 +194,7 @@ func (c *Context) Download(file *File) {
 	c.ResponseWriter().Header().Set("Content-Type", file.ContentType)
 	c.ResponseWriter().Header().Set(
 		"Content-Disposition",
-		"attachment; filename="+filepath.Base(file.FilePath),
+		"attachment; filename="+basename,
 	)
 	_, err = io.Copy(c.ResponseWriter(), f)
 	if err != nil {
