@@ -7,7 +7,7 @@ import (
 func main() {
 	router := pig.NewRouter()
 	router.GET("/", func(ctx *pig.Context) {
-
+		panic("test panic")
 	})
 
 	err := pig.New().Router(router).Start()

@@ -1,7 +1,6 @@
 package pig
 
 import (
-	"fmt"
 	"github.com/samber/do"
 )
 
@@ -24,6 +23,5 @@ func (m Middleware) Handle(context *Context, f func(*Context)) {
 		return NewHttpErrorHandler(), nil
 	})
 
-	fmt.Println("middleware")
 	f(context)
 }
