@@ -2,6 +2,7 @@ package pig
 
 import (
 	"bytes"
+	"encoding/json"
 	"github.com/bwmarrin/snowflake"
 	"github.com/samber/do"
 	"io"
@@ -197,6 +198,18 @@ func (c *Context) Download(file *File, basename string) {
 		"attachment; filename="+basename,
 	)
 	_, err = io.Copy(c.ResponseWriter(), f)
+	if err != nil {
+		panic(err)
+	}
+}
+
+func (c *Context) Json(o any) {
+	c.ResponseWriter().Header().Set("Content-Type", "application/json")
+	marshal, err := json.Marshal(o)
+	if err != nil {
+		panic(err)
+	}
+	_, err = c.ResponseWriter().Write(marshal)
 	if err != nil {
 		panic(err)
 	}

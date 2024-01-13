@@ -6,8 +6,9 @@ import (
 
 func main() {
 	router := pig.NewRouter()
-	router.POST("/", func(ctx *pig.Context) {
+	router.PUT("/", func(ctx *pig.Context) {
 
+		ctx.PostVar()["id"].TrimString()
 	})
 
 	err := pig.New().Router(router).Start()
