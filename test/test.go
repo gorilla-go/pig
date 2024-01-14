@@ -8,14 +8,10 @@ import (
 type Middleware struct {
 }
 
-func NewSysMiddleware() *Middleware {
-	return &Middleware{}
-}
-
-func (m *Middleware) Handle(context *pig.Context, f func(*pig.Context)) {
-	foundation.Provide[pig.ILogger](context.Injector(), pig.NewLogger())
-	foundation.Provide[pig.IHttpErrorHandler](context.Injector(), pig.NewHttpErrorHandler())
-	f(context)
+func (m *Middleware) Handle(c *pig.Context, f func(*pig.Context)) {
+	foundation.Provide[pig.ILogger](c.Injector(), pig.NewLogger())
+	foundation.Provide[pig.IHttpErrorHandler](c.Injector(), pig.NewHttpErrorHandler())
+	f(c)
 }
 
 func main() {
@@ -33,7 +29,7 @@ func main() {
 		})
 	})
 
-	err := pig.New().Use(NewSysMiddleware()).Router(r).Start()
+	err := pig.New().Use(&Middleware{}).Router(r).Start()
 	if err != nil {
 		panic(err)
 	}
