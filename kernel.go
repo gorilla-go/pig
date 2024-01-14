@@ -1,6 +1,7 @@
 package pig
 
 import (
+	"github.com/gorilla-go/pig/foundation"
 	"github.com/samber/do"
 	"net/http"
 )
@@ -50,8 +51,6 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 	k.Inject(w, req)
 
 	pipeline := NewPipeline[*Context]().Send(k.context)
-	pipeline.Through(NewSysMiddleware().Handle)
-
 	for _, middleware := range k.middleware {
 		pipeline.Through(middleware.Handle)
 	}
@@ -59,13 +58,8 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 }
 
 func (k *Kernel) Inject(w http.ResponseWriter, req *http.Request) {
-	do.Provide(k.context.Injector(), func(*do.Injector) (http.ResponseWriter, error) {
-		return w, nil
-	})
-	do.Provide(k.context.Injector(), func(*do.Injector) (*http.Request, error) {
-		return req, nil
-	})
-	do.Provide(k.context.Injector(), func(*do.Injector) (IRouter, error) {
-		return k.router, nil
-	})
+	foundation.Provide(k.context.Injector(), req)
+	foundation.Provide[http.ResponseWriter](k.context.Injector(), w)
+	foundation.Provide(k.context.Injector(), k.context)
+	foundation.Provide[IRouter](k.context.Injector(), k.router)
 }

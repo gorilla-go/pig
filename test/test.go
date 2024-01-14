@@ -2,7 +2,21 @@ package main
 
 import (
 	"github.com/gorilla-go/pig"
+	"github.com/gorilla-go/pig/foundation"
 )
+
+type Middleware struct {
+}
+
+func NewSysMiddleware() *Middleware {
+	return &Middleware{}
+}
+
+func (m *Middleware) Handle(context *pig.Context, f func(*pig.Context)) {
+	foundation.Provide[pig.ILogger](context.Injector(), pig.NewLogger())
+	foundation.Provide[pig.IHttpErrorHandler](context.Injector(), pig.NewHttpErrorHandler())
+	f(context)
+}
 
 func main() {
 	r := pig.NewRouter()
@@ -19,7 +33,7 @@ func main() {
 		})
 	})
 
-	err := pig.New().Router(r).Start()
+	err := pig.New().Use(NewSysMiddleware()).Router(r).Start()
 	if err != nil {
 		panic(err)
 	}
