@@ -140,7 +140,7 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 						return true
 					}
 
-					regexpStr := pathFormatArr[1]
+					regexpStr := strings.TrimSpace(pathFormatArr[1])
 					match, err := regexp.Match(regexpStr, []byte(pathParts[i]))
 					if err != nil || !match {
 						return true
