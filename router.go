@@ -40,7 +40,7 @@ func (r *Router) addRoute(t string, path string, f func(*Context), middleware []
 }
 
 func (r *Router) ReqUniPath(path, method string) string {
-	return fmt.Sprintf("%s::%s", method, path)
+	return fmt.Sprintf("%s://%s", method, path)
 }
 
 func (r *Router) GET(path string, f func(*Context), middleware ...IMiddleware) {
@@ -125,7 +125,12 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 			}
 
 			for i, part := range regexpParts {
-				if part[0] == ':' && len(pathParts[i]) > 0 {
+				if len(path) > 1 && part[0] == ':' && len(pathParts[i]) > 0 {
+					// search for .
+					if strings.Contains(pathParts[i], ".") {
+						pathParts[i] = (strings.Split(pathParts[i], "."))[0]
+					}
+
 					routerParams[part[1:]] = NewReqParamV([]string{pathParts[i]})
 					continue
 				}
