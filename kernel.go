@@ -30,7 +30,7 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 		if errno := recover(); errno != nil {
 			errorHandler, err := do.Invoke[IHttpErrorHandler](k.context.Injector())
 			if err != nil {
-				log.Println(debug.Stack())
+				log.Println(string(debug.Stack()))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}
