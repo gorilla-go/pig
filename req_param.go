@@ -208,3 +208,23 @@ func (h *ReqParamHelper) TrimString(s string, def ...string) string {
 	}
 	return ret
 }
+
+func (h *ReqParamHelper) Lmt(s string, lmtV []string, def ...string) *ReqParamAtom {
+	ret := ""
+	if len(def) > 0 {
+		ret = def[0]
+	}
+	defer func() {
+		if err := recover(); err != nil {
+		}
+	}()
+	if v, ok := h.r[s]; ok {
+		for _, lmt := range lmtV {
+			if v.String() == lmt {
+				ret = v.String()
+				break
+			}
+		}
+	}
+	return NewReqParamAtom(ret)
+}

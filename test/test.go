@@ -15,7 +15,7 @@ func main() {
 
 	r.GET("/:id", func(c *pig.Context) {
 		c.Json(map[string]interface{}{
-			"id": c.ParamVar().Int("id"),
+			"id": c.ParamVar().Lmt("id", []string{"1", "2", "3"}, "0").Int(),
 		})
 	})
 
