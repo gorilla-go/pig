@@ -3,6 +3,7 @@ package pig
 import (
 	"fmt"
 	"github.com/gorilla-go/pig/foundation"
+	"regexp"
 	"strings"
 )
 
@@ -94,7 +95,7 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 	routerParams := make(RouterParams)
 	middlewares := make([]IMiddleware, 0)
 
-	r.regRouteMap.ForEach(func(regexp string, methodMap *foundation.LinkedHashMap[string, func(*Context)]) bool {
+	r.regRouteMap.ForEach(func(uri string, methodMap *foundation.LinkedHashMap[string, func(*Context)]) bool {
 		ok := methodMap.ContainsKey(requestMethod)
 		if !ok {
 			ok = methodMap.ContainsKey("ANY")
@@ -105,27 +106,51 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 			}
 		}
 
-		regexpTrim := strings.Trim(regexp, "/")
+		uri = strings.Trim(uri, "/")
 		path = strings.Trim(path, "/")
 
-		patternMode := strings.Contains(regexpTrim, ":")
-		if !patternMode && regexpTrim == path {
+		patternMode := strings.Contains(uri, ":")
+		if !patternMode && uri == path {
 			fn = methodMap.Get(requestMethod)
-			if m, ok := r.middlewareMap[r.ReqUniPath(regexp, requestMethod)]; ok {
+			if m, ok := r.middlewareMap[r.ReqUniPath(uri, requestMethod)]; ok {
 				middlewares = m
 			}
 			return false
 		}
 
 		if patternMode {
-			regexpParts := strings.Split(regexpTrim, "/")
+			uriParts := strings.Split(uri, "/")
 			pathParts := strings.Split(path, "/")
-			if len(regexpParts) != len(pathParts) {
+			if len(uriParts) != len(pathParts) {
 				return true
 			}
 
-			for i, part := range regexpParts {
-				if len(path) > 1 && part[0] == ':' && len(pathParts[i]) > 0 {
+			for i, part := range uriParts {
+				if len(pathParts[i]) == 0 {
+					return true
+				}
+
+				if len(path) > 4 && part[0] == '<' && part[len(part)-1] == '>' {
+					if strings.Contains(pathParts[i], ".") {
+						pathParts[i] = (strings.Split(pathParts[i], "."))[0]
+					}
+
+					pathFormatArr := strings.SplitN(part[1:len(part)-1], ":", 2)
+					if len(pathFormatArr) < 2 {
+						return true
+					}
+
+					regexpStr := pathFormatArr[1]
+					match, err := regexp.Match(regexpStr, []byte(pathParts[i]))
+					if err != nil || !match {
+						return true
+					}
+
+					routerParams[pathFormatArr[0]] = NewReqParamV([]string{pathParts[i]})
+					continue
+				}
+
+				if len(path) > 1 && part[0] == ':' {
 					if strings.Contains(pathParts[i], ".") {
 						pathParts[i] = (strings.Split(pathParts[i], "."))[0]
 					}
@@ -138,7 +163,7 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 				}
 			}
 			fn = methodMap.Get(requestMethod)
-			if m, ok := r.middlewareMap[r.ReqUniPath(regexp, requestMethod)]; ok {
+			if m, ok := r.middlewareMap[r.ReqUniPath(uri, requestMethod)]; ok {
 				middlewares = m
 			}
 			return false

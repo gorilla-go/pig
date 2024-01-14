@@ -33,15 +33,9 @@ func main() {
 		})
 	})
 
-	r.GET("/:id", func(c *pig.Context) {
-		c.Json(map[string]interface{}{
-			"id": c.ParamVar().Lmt("id", []string{"1", "2", "3"}, "0").Int(),
-		})
-	}, &TestMiddleware{})
-
-	r.GET("/test/:id", func(c *pig.Context) {
-		c.Json(map[string]interface{}{
-			"id": c.ParamVar().TrimString("id", ""),
+	r.GET("/test/<id:[a-z]+>", func(context *pig.Context) {
+		context.Json(map[string]interface{}{
+			"test": context.ParamVar().TrimString("id", ""),
 		})
 	})
 
