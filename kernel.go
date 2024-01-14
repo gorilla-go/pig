@@ -1,6 +1,7 @@
 package pig
 
 import (
+	"fmt"
 	"github.com/samber/do/v2"
 	"log"
 	"net/http"
@@ -30,7 +31,7 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 		if errno := recover(); errno != nil {
 			errorHandler, err := do.Invoke[IHttpErrorHandler](k.context.Injector())
 			if err != nil {
-				log.Println(string(debug.Stack()))
+				log.Println(fmt.Sprintf("%s\n\r%s", errno, string(debug.Stack())))
 				w.WriteHeader(http.StatusInternalServerError)
 				return
 			}

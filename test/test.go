@@ -8,7 +8,6 @@ func main() {
 	r := pig.NewRouter()
 	r.GET("/", func(c *pig.Context) {
 		postId := c.ParamVar().TrimString("post_id", "")
-		c.GetConfig("app.name")
 		c.Json(map[string]interface{}{
 			"post_id": postId,
 		})
