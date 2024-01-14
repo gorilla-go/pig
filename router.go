@@ -132,6 +132,10 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 					routerParams[part[1:]] = NewReqParamV([]string{pathParts[i]})
 					continue
 				}
+
+				if part != pathParts[i] {
+					return true
+				}
 			}
 			fn = methodMap.Get(requestMethod)
 			if m, ok := r.middlewareMap[r.ReqUniPath(regexp, requestMethod)]; ok {

@@ -39,6 +39,12 @@ func main() {
 		})
 	}, &TestMiddleware{})
 
+	r.GET("/test/:id", func(c *pig.Context) {
+		c.Json(map[string]interface{}{
+			"id": c.ParamVar().TrimString("id", ""),
+		})
+	})
+
 	err := pig.New().Use(&Middleware{}).Router(r).Start()
 	if err != nil {
 		panic(err)
