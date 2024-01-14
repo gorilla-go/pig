@@ -7,15 +7,8 @@ import (
 func main() {
 	router := pig.NewRouter()
 	router.GET("/", func(c *pig.Context) {
-		postId := c.ParamVar()["post_id"].Int()
+		postId := c.ParamVar().TrimString("post_id", "0")
 		c.Json(map[string]interface{}{
-			"post_id": postId,
-		})
-	})
-
-	router.GET("/:id", func(context *pig.Context) {
-		postId := context.ParamVar()["id"].Int()
-		context.Json(map[string]interface{}{
 			"post_id": postId,
 		})
 	})

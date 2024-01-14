@@ -15,9 +15,9 @@ import (
 
 type Context struct {
 	injector  *do.Injector
-	paramVar  map[string]*ReqParamV
+	paramVar  *ReqParamHelper
 	paramOnce sync.Once
-	postVar   map[string]*ReqParamV
+	postVar   *ReqParamHelper
 	postOnce  sync.Once
 	fileVar   map[string]*File
 	fileOnce  sync.Once
@@ -50,39 +50,41 @@ func (c *Context) ResponseWriter() http.ResponseWriter {
 	return do.MustInvoke[http.ResponseWriter](c.injector)
 }
 
-func (c *Context) ParamVar() map[string]*ReqParamV {
+func (c *Context) ParamVar() *ReqParamHelper {
 	c.paramOnce.Do(func() {
-		c.paramVar = make(map[string]*ReqParamV)
+		paramVar := make(map[string]*ReqParamV)
 
 		request := do.MustInvoke[*http.Request](c.Injector())
 		for n, v := range request.URL.Query() {
-			c.paramVar[n] = NewReqParamV(v)
+			paramVar[n] = NewReqParamV(v)
 		}
 
 		routerParams := c.routerParams()
 		if routerParams != nil {
 			for n, v := range routerParams {
-				c.paramVar[n] = v
+				paramVar[n] = v
 			}
 		}
+
+		c.paramVar = NewReqParamHelper(paramVar)
 	})
 
 	return c.paramVar
 }
 
-func (c *Context) PostVar() map[string]*ReqParamV {
+func (c *Context) PostVar() *ReqParamHelper {
 	c.postOnce.Do(func() {
-		c.postVar = make(map[string]*ReqParamV)
+		postVar := make(map[string]*ReqParamV)
 		request := do.MustInvoke[*http.Request](c.Injector())
 		err := request.ParseForm()
 		if err != nil {
 			panic(err)
 		}
 		for n, v := range request.PostForm {
-			c.postVar[n] = NewReqParamV(v)
+			postVar[n] = NewReqParamV(v)
 		}
 
-		if len(c.postVar) == 0 {
+		if len(postVar) == 0 {
 			multipartReader, err := request.MultipartReader()
 			if err != nil {
 				panic(err)
@@ -103,10 +105,12 @@ func (c *Context) PostVar() map[string]*ReqParamV {
 					if err != nil {
 						panic(err)
 					}
-					c.postVar[formName] = NewReqParamV([]string{buf.String()})
+					postVar[formName] = NewReqParamV([]string{buf.String()})
 				}
 			}
 		}
+
+		c.postVar = NewReqParamHelper(postVar)
 	})
 	return c.postVar
 }

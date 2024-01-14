@@ -106,3 +106,105 @@ func (r *ReqParamV) Bytes() []byte {
 func (r *ReqParamV) ReqParamAtoms() []*ReqParamAtom {
 	return r.v
 }
+
+type ReqParamHelper struct {
+	r ReqParams
+}
+
+func NewReqParamHelper(m ReqParams) *ReqParamHelper {
+	return &ReqParamHelper{r: m}
+}
+
+func (h *ReqParamHelper) Raw() ReqParams {
+	return h.r
+}
+
+func (h *ReqParamHelper) Int(s string, def ...int) int {
+	ret := 0
+	if len(def) > 0 {
+		ret = def[0]
+	}
+	defer func() {
+		if err := recover(); err != nil {
+		}
+	}()
+	if v, ok := h.r[s]; ok {
+		ret = v.Int()
+	}
+	return ret
+}
+
+func (h *ReqParamHelper) Int64(s string, def ...int64) int64 {
+	ret := int64(0)
+	if len(def) > 0 {
+		ret = def[0]
+	}
+	defer func() {
+		if err := recover(); err != nil {
+		}
+	}()
+	if v, ok := h.r[s]; ok {
+		ret = v.Int64()
+	}
+	return ret
+}
+
+func (h *ReqParamHelper) Float64(s string, def ...float64) float64 {
+	ret := float64(0)
+	if len(def) > 0 {
+		ret = def[0]
+	}
+	defer func() {
+		if err := recover(); err != nil {
+		}
+	}()
+	if v, ok := h.r[s]; ok {
+		ret = v.Float64()
+	}
+	return ret
+}
+
+func (h *ReqParamHelper) Bool(s string, def ...bool) bool {
+	ret := false
+	if len(def) > 0 {
+		ret = def[0]
+	}
+	defer func() {
+		if err := recover(); err != nil {
+		}
+	}()
+	if v, ok := h.r[s]; ok {
+		ret = v.Bool()
+	}
+	return ret
+}
+
+func (h *ReqParamHelper) String(s string, def ...string) string {
+	ret := ""
+	if len(def) > 0 {
+		ret = def[0]
+	}
+	defer func() {
+		if err := recover(); err != nil {
+		}
+	}()
+	if v, ok := h.r[s]; ok {
+		ret = v.String()
+	}
+	return ret
+}
+
+func (h *ReqParamHelper) TrimString(s string, def ...string) string {
+	ret := ""
+	if len(def) > 0 {
+		ret = def[0]
+	}
+	defer func() {
+		if err := recover(); err != nil {
+		}
+	}()
+	if v, ok := h.r[s]; ok {
+		ret = v.TrimString()
+	}
+	return ret
+}
