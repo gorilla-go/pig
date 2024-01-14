@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/bwmarrin/snowflake"
-	"github.com/samber/do"
+	"github.com/samber/do/v2"
 	"io"
 	"math/rand"
 	"net/http"
@@ -14,7 +14,7 @@ import (
 )
 
 type Context struct {
-	injector  *do.Injector
+	injector  do.Injector
 	paramVar  *ReqParamHelper
 	paramOnce sync.Once
 	postVar   *ReqParamHelper
@@ -30,7 +30,7 @@ func NewContext() *Context {
 	}
 }
 
-func (c *Context) Injector() *do.Injector {
+func (c *Context) Injector() do.Injector {
 	return c.injector
 }
 

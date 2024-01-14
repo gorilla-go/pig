@@ -31,7 +31,7 @@ func (a *Application) Router(router IRouter) *Application {
 	return a
 }
 
-func (a *Application) Start() error {
+func (a *Application) Run() error {
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		NewKernel(a.router).Through(a.middleware).Handle(w, req)
 	})
