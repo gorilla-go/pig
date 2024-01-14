@@ -110,7 +110,7 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 			}
 
 			for i, part := range regexpParts {
-				if part[0] == ':' {
+				if part[0] == ':' && len(pathParts[i]) > 0 {
 					routerParams[part[1:]] = NewReqParamV([]string{pathParts[i]})
 					continue
 				}
