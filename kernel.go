@@ -51,7 +51,7 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if routerParams != nil && len(routerParams) > 0 {
-		do.ProvideValue(k.context.Injector(), routerParams)
+		foundation.ProvideValue[RouterParams](k.context.Injector(), routerParams)
 	}
 
 	pipeline := NewPipeline[*Context]().Send(k.context)
