@@ -13,9 +13,9 @@ func main() {
 		})
 	})
 
-	r.GET("/:id", func(context *pig.Context) {
-		context.Json(map[string]interface{}{
-			"id": context.ParamVar().TrimString("id"),
+	r.GET("/:id", func(c *pig.Context) {
+		c.Json(map[string]interface{}{
+			"id": c.ParamVar().Int("id"),
 		})
 	})
 
