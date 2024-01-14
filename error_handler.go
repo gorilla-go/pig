@@ -12,7 +12,7 @@ func NewHttpErrorHandler() *ErrorHandler {
 	return &ErrorHandler{}
 }
 
-func (e ErrorHandler) Handle(err any, context *Context) {
+func (e *ErrorHandler) Handle(err any, context *Context) {
 	// set http code
 	context.ResponseWriter().WriteHeader(500)
 	errno := fmt.Sprintf("%v", err)
