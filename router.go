@@ -121,7 +121,7 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 			regexpParts := strings.Split(regexpTrim, "/")
 			pathParts := strings.Split(path, "/")
 			if len(regexpParts) != len(pathParts) {
-				return false
+				return true
 			}
 
 			for i, part := range regexpParts {
