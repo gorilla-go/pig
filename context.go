@@ -21,6 +21,7 @@ type Context struct {
 	postOnce  sync.Once
 	fileVar   map[string]*File
 	fileOnce  sync.Once
+	config    IConfig
 }
 
 func NewContext() *Context {
@@ -223,4 +224,19 @@ func (c *Context) Logger() ILogger {
 		panic(err)
 	}
 	return logger
+}
+
+func (c *Context) GetConfig(s string) any {
+	if c.config == nil {
+		config, err := do.Invoke[IConfig](c.Injector())
+		if err != nil {
+			panic(err)
+		}
+		c.config = config
+	}
+	v, err := c.config.Get(s)
+	if err != nil {
+		panic(err)
+	}
+	return v
 }

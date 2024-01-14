@@ -23,3 +23,7 @@ type ISession[T any] interface {
 	Get(string) T
 	Set(string, T)
 }
+
+type IConfig interface {
+	Get(string) (any, error)
+}
