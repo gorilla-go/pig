@@ -24,16 +24,9 @@ func (h *Pipeline[T]) Through(unit func(T, func(T))) *Pipeline[T] {
 }
 
 func (h *Pipeline[T]) Then(p func(T)) {
-	f := lo.Reduce(
+	f := lo.ReduceRight(
 		h.pipelines,
-		func(
-			f func(T),
-			f2 func(
-				T,
-				func(T),
-			),
-			i int,
-		) func(T) {
+		func(f func(T), f2 func(T, func(T)), i int) func(T) {
 			return func(i T) {
 				f2(i, f)
 			}

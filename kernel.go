@@ -38,17 +38,21 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 		}
 	}()
 
-	controllerAction, routerParams := k.router.Route(req.URL.Path, req.Method)
+	k.Inject(w, req)
+
+	controllerAction, routerParams, cusMiddleware := k.router.Route(req.URL.Path, req.Method)
 	if controllerAction == nil {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
+	if cusMiddleware != nil && len(cusMiddleware) > 0 {
+		k.middleware = cusMiddleware
+	}
+
 	if routerParams != nil && len(routerParams) > 0 {
 		do.ProvideValue(k.context.Injector(), routerParams)
 	}
-
-	k.Inject(w, req)
 
 	pipeline := NewPipeline[*Context]().Send(k.context)
 	for _, middleware := range k.middleware {

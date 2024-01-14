@@ -8,7 +8,7 @@ type ILogger interface {
 }
 
 type IRouter interface {
-	Route(path string, method string) (func(*Context), RouterParams)
+	Route(path string, method string) (func(*Context), RouterParams, []IMiddleware)
 }
 
 type IMiddleware interface {

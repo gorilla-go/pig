@@ -1,13 +1,15 @@
 package pig
 
 import (
+	"fmt"
 	"github.com/gorilla-go/pig/foundation"
 	"strings"
 )
 
 type Router struct {
-	regRouteMap *foundation.LinkedHashMap[string, *foundation.LinkedHashMap[string, func(*Context)]]
-	missRoute   func(*Context)
+	regRouteMap   *foundation.LinkedHashMap[string, *foundation.LinkedHashMap[string, func(*Context)]]
+	missRoute     func(*Context)
+	middlewareMap map[string][]IMiddleware
 }
 
 type RouterParams ReqParams
@@ -18,10 +20,11 @@ func NewRouter() *Router {
 			K: make([]string, 0),
 			M: make(map[string]*foundation.LinkedHashMap[string, func(*Context)]),
 		},
+		middlewareMap: make(map[string][]IMiddleware),
 	}
 }
 
-func (r *Router) addRoute(t string, path string, f func(*Context)) {
+func (r *Router) addRoute(t string, path string, f func(*Context), middleware []IMiddleware) {
 	t = strings.ToUpper(t)
 	if r.regRouteMap.ContainsKey(path) == false {
 		r.regRouteMap.Put(path, &foundation.LinkedHashMap[string, func(*Context)]{
@@ -30,46 +33,54 @@ func (r *Router) addRoute(t string, path string, f func(*Context)) {
 		})
 	}
 	r.regRouteMap.Get(path).Put(t, f)
+
+	if len(middleware) > 0 {
+		r.middlewareMap[r.ReqUniPath(path, t)] = middleware
+	}
 }
 
-func (r *Router) GET(path string, f func(*Context)) {
-	r.addRoute("GET", path, f)
+func (r *Router) ReqUniPath(path, method string) string {
+	return fmt.Sprintf("%s::%s", method, path)
 }
 
-func (r *Router) POST(path string, f func(*Context)) {
-	r.addRoute("POST", path, f)
+func (r *Router) GET(path string, f func(*Context), middleware ...IMiddleware) {
+	r.addRoute("GET", path, f, middleware)
 }
 
-func (r *Router) PUT(path string, f func(*Context)) {
-	r.addRoute("PUT", path, f)
+func (r *Router) POST(path string, f func(*Context), middleware ...IMiddleware) {
+	r.addRoute("POST", path, f, middleware)
 }
 
-func (r *Router) DELETE(path string, f func(*Context)) {
-	r.addRoute("DELETE", path, f)
+func (r *Router) PUT(path string, f func(*Context), middleware ...IMiddleware) {
+	r.addRoute("PUT", path, f, middleware)
 }
 
-func (r *Router) PATCH(path string, f func(*Context)) {
-	r.addRoute("PATCH", path, f)
+func (r *Router) DELETE(path string, f func(*Context), middleware ...IMiddleware) {
+	r.addRoute("DELETE", path, f, middleware)
 }
 
-func (r *Router) OPTIONS(path string, f func(*Context)) {
-	r.addRoute("OPTIONS", path, f)
+func (r *Router) PATCH(path string, f func(*Context), middleware ...IMiddleware) {
+	r.addRoute("PATCH", path, f, middleware)
 }
 
-func (r *Router) HEAD(path string, f func(*Context)) {
-	r.addRoute("HEAD", path, f)
+func (r *Router) OPTIONS(path string, f func(*Context), middleware ...IMiddleware) {
+	r.addRoute("OPTIONS", path, f, middleware)
 }
 
-func (r *Router) CONNECT(path string, f func(*Context)) {
-	r.addRoute("CONNECT", path, f)
+func (r *Router) HEAD(path string, f func(*Context), middleware ...IMiddleware) {
+	r.addRoute("HEAD", path, f, middleware)
 }
 
-func (r *Router) TRACE(path string, f func(*Context)) {
-	r.addRoute("TRACE", path, f)
+func (r *Router) CONNECT(path string, f func(*Context), middleware ...IMiddleware) {
+	r.addRoute("CONNECT", path, f, middleware)
 }
 
-func (r *Router) ANY(path string, f func(*Context)) {
-	r.addRoute("ANY", path, f)
+func (r *Router) TRACE(path string, f func(*Context), middleware ...IMiddleware) {
+	r.addRoute("TRACE", path, f, middleware)
+}
+
+func (r *Router) ANY(path string, f func(*Context), middleware ...IMiddleware) {
+	r.addRoute("ANY", path, f, middleware)
 }
 
 func (r *Router) Miss(f func(*Context)) *Router {
@@ -77,10 +88,11 @@ func (r *Router) Miss(f func(*Context)) *Router {
 	return r
 }
 
-func (r *Router) Route(path string, requestMethod string) (func(*Context), RouterParams) {
+func (r *Router) Route(path string, requestMethod string) (func(*Context), RouterParams, []IMiddleware) {
 	requestMethod = strings.ToUpper(requestMethod)
 	var fn func(*Context) = nil
 	routerParams := make(RouterParams)
+	middlewares := make([]IMiddleware, 0)
 
 	r.regRouteMap.ForEach(func(regexp string, methodMap *foundation.LinkedHashMap[string, func(*Context)]) bool {
 		ok := methodMap.ContainsKey(requestMethod)
@@ -99,6 +111,9 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 		patternMode := strings.Contains(regexpTrim, ":")
 		if !patternMode && regexpTrim == path {
 			fn = methodMap.Get(requestMethod)
+			if m, ok := r.middlewareMap[r.ReqUniPath(regexp, requestMethod)]; ok {
+				middlewares = m
+			}
 			return false
 		}
 
@@ -116,12 +131,16 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 				}
 			}
 			fn = methodMap.Get(requestMethod)
+			if m, ok := r.middlewareMap[r.ReqUniPath(regexp, requestMethod)]; ok {
+				middlewares = m
+			}
+			return false
 		}
 		return true
 	})
 
 	if r.missRoute != nil {
-		return r.missRoute, nil
+		return r.missRoute, nil, middlewares
 	}
-	return fn, routerParams
+	return fn, routerParams, middlewares
 }
