@@ -11,6 +11,8 @@ import (
 type File struct {
 	ContentType string
 	FilePath    string
+	Basename    string
+	Ext         string
 }
 
 func NewFile(filePath string) *File {
@@ -36,6 +38,8 @@ func NewFile(filePath string) *File {
 	return &File{
 		FilePath:    filePath,
 		ContentType: contentType,
+		Basename:    filepath.Base(filePath),
+		Ext:         filepath.Ext(filePath),
 	}
 }
 

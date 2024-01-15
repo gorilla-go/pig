@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gorilla-go/pig"
+	"path/filepath"
 )
 
 func main() {
@@ -21,8 +23,10 @@ func main() {
 		c.Echo("ok")
 	})
 
-	r.GET("/upload", func(context *pig.Context) {
-		context.Download(pig.NewFile("/Users/yehua/Downloads/202401/15/1746723873245892608.zip"), "test.zip")
+	r.POST("/upload", func(context *pig.Context) {
+		path := context.FileVar()["file"].FilePath
+		fmt.Println(path)
+		context.Download(context.FileVar()["file"], filepath.Base(path))
 	})
 
 	pig.New().Router(r).Run()

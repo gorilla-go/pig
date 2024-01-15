@@ -133,6 +133,7 @@ func (c *Context) FileVar() map[string]*File {
 				}
 				panic(err)
 			}
+
 			fileName := part.FileName()
 			formName := part.FormName()
 			if len(formName) > 0 && len(fileName) > 0 {
@@ -169,6 +170,8 @@ func (c *Context) FileVar() map[string]*File {
 				c.fileVar[formName] = &File{
 					FilePath:    filename,
 					ContentType: part.Header.Get("Content-Type"),
+					Basename:    fileName,
+					Ext:         ext,
 				}
 			}
 		}
