@@ -1,6 +1,7 @@
 package pig
 
 import (
+	"github.com/gorilla-go/pig/foundation"
 	"strconv"
 	"strings"
 )
@@ -120,10 +121,7 @@ func (h *ReqParamHelper) Raw() ReqParams {
 }
 
 func (h *ReqParamHelper) Int(s string, def ...int) int {
-	ret := 0
-	if len(def) > 0 {
-		ret = def[0]
-	}
+	ret := foundation.DefaultParam(def, 0)
 	defer func() {
 		if err := recover(); err != nil {
 		}
@@ -135,10 +133,7 @@ func (h *ReqParamHelper) Int(s string, def ...int) int {
 }
 
 func (h *ReqParamHelper) Int64(s string, def ...int64) int64 {
-	ret := int64(0)
-	if len(def) > 0 {
-		ret = def[0]
-	}
+	ret := foundation.DefaultParam(def, int64(0))
 	defer func() {
 		if err := recover(); err != nil {
 		}
@@ -150,10 +145,7 @@ func (h *ReqParamHelper) Int64(s string, def ...int64) int64 {
 }
 
 func (h *ReqParamHelper) Float64(s string, def ...float64) float64 {
-	ret := float64(0)
-	if len(def) > 0 {
-		ret = def[0]
-	}
+	ret := foundation.DefaultParam(def, float64(0))
 	defer func() {
 		if err := recover(); err != nil {
 		}
@@ -165,10 +157,7 @@ func (h *ReqParamHelper) Float64(s string, def ...float64) float64 {
 }
 
 func (h *ReqParamHelper) Bool(s string, def ...bool) bool {
-	ret := false
-	if len(def) > 0 {
-		ret = def[0]
-	}
+	ret := foundation.DefaultParam(def, false)
 	defer func() {
 		if err := recover(); err != nil {
 		}
@@ -180,10 +169,7 @@ func (h *ReqParamHelper) Bool(s string, def ...bool) bool {
 }
 
 func (h *ReqParamHelper) String(s string, def ...string) string {
-	ret := ""
-	if len(def) > 0 {
-		ret = def[0]
-	}
+	ret := foundation.DefaultParam(def, "")
 	defer func() {
 		if err := recover(); err != nil {
 		}
@@ -195,10 +181,7 @@ func (h *ReqParamHelper) String(s string, def ...string) string {
 }
 
 func (h *ReqParamHelper) TrimString(s string, def ...string) string {
-	ret := ""
-	if len(def) > 0 {
-		ret = def[0]
-	}
+	ret := foundation.DefaultParam(def, "")
 	defer func() {
 		if err := recover(); err != nil {
 		}
@@ -210,10 +193,7 @@ func (h *ReqParamHelper) TrimString(s string, def ...string) string {
 }
 
 func (h *ReqParamHelper) Lmt(s string, lmtV []string, def ...string) *ReqParamAtom {
-	ret := ""
-	if len(def) > 0 {
-		ret = def[0]
-	}
+	ret := foundation.DefaultParam(def, "")
 	defer func() {
 		if err := recover(); err != nil {
 		}

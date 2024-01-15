@@ -65,8 +65,8 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 }
 
 func (k *Kernel) Inject(w http.ResponseWriter, req *http.Request) {
-	do.ProvideValue(k.context.Injector(), req)
+	do.ProvideValue[*http.Request](k.context.Injector(), req)
 	do.ProvideValue[http.ResponseWriter](k.context.Injector(), w)
-	do.ProvideValue(k.context.Injector(), k.context)
+	do.ProvideValue[*Context](k.context.Injector(), k.context)
 	do.ProvideValue[IRouter](k.context.Injector(), k.router)
 }
