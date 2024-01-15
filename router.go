@@ -89,6 +89,17 @@ func (r *Router) Miss(f func(*Context)) *Router {
 	return r
 }
 
+func (r *Router) Debug() {
+	fmt.Println("---------------------- router debug ----------------------")
+	r.regRouteMap.ForEach(func(uri string, methodMap *foundation.LinkedHashMap[string, func(*Context)]) bool {
+		methodMap.ForEach(func(method string, fn func(*Context)) bool {
+			fmt.Println(fmt.Sprintf("%s %s", method, uri))
+			return true
+		})
+		return true
+	})
+}
+
 func (r *Router) Route(path string, requestMethod string) (func(*Context), RouterParams, []IMiddleware) {
 	requestMethod = strings.ToUpper(requestMethod)
 	var fn func(*Context) = nil
@@ -102,14 +113,17 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 			if ok {
 				fn = methodMap.Get("ANY")
 			} else {
-				return false
+				return true
 			}
 		}
 
 		uri = strings.Trim(uri, "/")
 		path = strings.Trim(path, "/")
 
-		patternMode := strings.Contains(uri, ":")
+		patternMode := strings.Contains(uri, ":") ||
+			strings.Contains(uri, "<") ||
+			strings.Contains(uri, ">")
+
 		if !patternMode && uri == path {
 			fn = methodMap.Get(requestMethod)
 			if m, ok := r.middlewareMap[r.ReqUniPath(uri, requestMethod)]; ok {
