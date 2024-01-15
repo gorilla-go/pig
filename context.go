@@ -230,11 +230,7 @@ func (c *Context) Echo(s string) {
 }
 
 func (c *Context) Logger() ILogger {
-	logger, err := do.Invoke[ILogger](c.Injector())
-	if err != nil {
-		panic(err)
-	}
-	return logger
+	return do.MustInvoke[ILogger](c.Injector())
 }
 
 func (c *Context) Config(s string) any {
