@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/bwmarrin/snowflake"
+	"github.com/gorilla-go/pig/foundation"
 	"github.com/samber/do/v2"
 	"io"
 	"math/rand"
@@ -207,6 +208,15 @@ func (c *Context) Download(file *File, basename string) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (c *Context) Redirect(uri string, code ...int) {
+	http.Redirect(
+		c.ResponseWriter(),
+		c.Request(),
+		uri,
+		foundation.DefaultParam(code, http.StatusFound),
+	)
 }
 
 func (c *Context) Json(o any) {

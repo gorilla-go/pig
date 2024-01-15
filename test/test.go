@@ -6,16 +6,8 @@ import (
 
 func main() {
 	r := pig.NewRouter()
-	r.POST("/upload", func(context *pig.Context) {
-		filePath := context.FileVar()["file"].FilePath
-		context.Echo(filePath)
-	})
-
-	r.GET("/download", func(context *pig.Context) {
-		context.Download(
-			pig.NewFile("/your/file/path.jpg"),
-			"filename.jpg",
-		)
+	r.GET("/redirect", func(context *pig.Context) {
+		context.Redirect("/redirected", 302)
 	})
 
 	pig.New().Router(r).Run(8088)

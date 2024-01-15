@@ -86,7 +86,7 @@ func main() {
 }
 ```
 
-- 缺省路由
+###### 缺省路由
 ```go
 package main
 
@@ -267,3 +267,83 @@ func main() {
 	pig.New().Router(r).Run(8088)
 }
 ```
+##### 响应
+
+---
+###### 文本
+```go
+package main
+
+import (
+	"github.com/gorilla-go/pig"
+)
+
+func main() {
+	r := pig.NewRouter()
+	r.GET("/", func(context *pig.Context) {
+		context.Echo("hello world")
+	})
+
+	pig.New().Router(r).Run(8088)
+}
+```
+
+###### JSON
+```go
+package main
+
+import (
+	"github.com/gorilla-go/pig"
+)
+
+func main() {
+	r := pig.NewRouter()
+	r.GET("/", func(context *pig.Context) {
+		context.Json(map[string]interface{}{
+			"id":   context.ParamVar().Int("id"),
+		})
+	})
+
+	pig.New().Router(r).Run(8088)
+}
+```
+
+###### 文件下载
+```go
+package main
+
+import (
+	"github.com/gorilla-go/pig"
+)
+
+func main() {
+	r := pig.NewRouter()
+	r.GET("/download", func(context *pig.Context) {
+		context.Download(
+			pig.NewFile("/your/file/path.jpg"),
+			"filename.jpg",
+		)
+	})
+
+	pig.New().Router(r).Run(8088)
+}
+```
+
+###### 重定向
+```go
+package main
+
+import (
+	"github.com/gorilla-go/pig"
+)
+
+func main() {
+	r := pig.NewRouter()
+	r.GET("/redirect", func(context *pig.Context) {
+		context.Redirect("/redirected", 302)
+	})
+
+	pig.New().Router(r).Run(8088)
+}
+```
+
