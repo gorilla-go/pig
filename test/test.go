@@ -1,32 +1,31 @@
 package main
 
 import (
-	"fmt"
 	"github.com/gorilla-go/pig"
-	"github.com/samber/do/v2"
 )
-
-type HttpErrorHandler struct {
-}
-
-func (h *HttpErrorHandler) Handle(a any, context *pig.Context) {
-	fmt.Println("error targeted")
-	context.Echo("500", 500)
-}
-
-type Middleware struct {
-}
-
-func (*Middleware) Handle(c *pig.Context, next func(*pig.Context)) {
-	do.ProvideValue[pig.IHttpErrorHandler](c.Injector(), &HttpErrorHandler{})
-	next(c)
-}
 
 func main() {
 	r := pig.NewRouter()
-	r.GET("/", func(c *pig.Context) {
-		panic("error")
+
+	// 上传
+	r.POST("/upload", func(context *pig.Context) {
+		filePath := context.FileVar()["file"].FilePath
+		context.Echo(filePath)
 	})
 
-	pig.New().Use(&Middleware{}).Router(r).Run(8088)
+	// 归档存储
+	r.POST("/upload/archive", func(context *pig.Context) {
+		file := context.FileVar()["file"]
+		file = file.ArchiveMove("/your/dest/dir")
+		context.Echo(file.FilePath)
+	})
+
+	// 移动文件
+	r.POST("/upload/rename", func(context *pig.Context) {
+		file := context.FileVar()["file"]
+		file = file.Move("/your/dest/file.jpg")
+		context.Echo(file.FilePath)
+	})
+
+	pig.New().Router(r).Run(8088)
 }
