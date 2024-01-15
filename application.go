@@ -57,6 +57,6 @@ func (a *Application) PrintMeta() {
 	color.Cyan(
 		"   ___    ____ _____  _      __    __     ____             _        \n  / _ \\  /  _// ___/ | | /| / /__ / /    / __/__ _____  __(_)______ \n / ___/ _/ /_/ (_ /  | |/ |/ / -_) _ \\  _\\ \\/ -_) __/ |/ / / __/ -_)\n/_/  (_)___(_)___/   |__/|__/\\__/_.__/ /___/\\__/_/  |___/_/\\__/\\__/\n\n",
 	)
-	color.Green(fmt.Sprintf("listen:  %s:%d", a.address.String(), a.port))
 	color.Green(fmt.Sprintf("version: %s", a.version))
+	color.Green(fmt.Sprintf("listen:  %s:%d", a.address.String(), a.port))
 }
