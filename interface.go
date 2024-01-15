@@ -1,10 +1,10 @@
 package pig
 
 type ILogger interface {
-	Info(message string)
-	Debug(message string)
-	Warning(message string)
-	Fatal(message string)
+	Info(message string, c *Context)
+	Debug(message string, c *Context)
+	Warning(message string, c *Context)
+	Fatal(message string, c *Context)
 }
 
 type IRouter interface {

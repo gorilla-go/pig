@@ -219,7 +219,9 @@ func (c *Context) Redirect(uri string, code ...int) {
 	)
 }
 
-func (c *Context) Json(o any) {
+func (c *Context) Json(o any, code ...int) {
+	httpCode := foundation.DefaultParam(code, http.StatusOK)
+	c.ResponseWriter().WriteHeader(httpCode)
 	c.ResponseWriter().Header().Set("Content-Type", "application/json")
 	marshal, err := json.Marshal(o)
 	if err != nil {
@@ -231,7 +233,9 @@ func (c *Context) Json(o any) {
 	}
 }
 
-func (c *Context) Echo(s string) {
+func (c *Context) Echo(s string, code ...int) {
+	httpCode := foundation.DefaultParam(code, http.StatusOK)
+	c.ResponseWriter().WriteHeader(httpCode)
 	c.ResponseWriter().Header().Set("Content-Type", "text/plain")
 	_, err := c.ResponseWriter().Write([]byte(s))
 	if err != nil {

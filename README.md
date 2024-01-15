@@ -364,4 +364,111 @@ func main() {
 }
 ```
 
+##### 最佳实践
+
+---
+###### 默认参数
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/gorilla-go/pig/foundation"
+)
+
+func main() {
+	DefaultParams("no default")
+	DefaultParams("default", 200)
+}
+
+func DefaultParams(p string, i ...int) {
+	defCode := foundation.DefaultParam(i, 0)
+	fmt.Println(defCode)
+}
+```
+
+###### 日志
+```go
+package main
+
+import (
+	"github.com/gorilla-go/pig"
+	"github.com/samber/do/v2"
+	"log"
+)
+
+type Logger struct{}
+
+func (*Logger) Info(message string, c *pig.Context) {
+	log.Println(message)
+}
+
+func (*Logger) Debug(message string, c *pig.Context) {
+	log.Println(message)
+}
+
+func (*Logger) Warning(message string, c *pig.Context) {
+	log.Println(message)
+}
+
+func (*Logger) Fatal(message string, c *pig.Context) {
+	log.Println(message)
+}
+
+type Middleware struct {
+}
+
+func (*Middleware) Handle(c *pig.Context, next func(*pig.Context)) {
+	do.ProvideValue[pig.ILogger](c.Injector(), &Logger{})
+	next(c)
+}
+
+func main() {
+	r := pig.NewRouter()
+	r.GET("/", func(c *pig.Context) {
+		c.Logger().Info("Hello World!", c)
+	})
+
+	pig.New().Use(&Middleware{}).Router(r).Run(8088)
+}
+```
+> 用户自行实现日志处理或加载第三方日志框架.
+
+###### 错误处理
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/gorilla-go/pig"
+	"github.com/samber/do/v2"
+)
+
+type HttpErrorHandler struct {
+}
+
+func (h *HttpErrorHandler) Handle(a any, context *pig.Context) {
+	fmt.Println("error targeted")
+	context.Echo("500", 500)
+}
+
+type Middleware struct {
+}
+
+func (*Middleware) Handle(c *pig.Context, next func(*pig.Context)) {
+	do.ProvideValue[pig.IHttpErrorHandler](c.Injector(), &HttpErrorHandler{})
+	next(c)
+}
+
+func main() {
+	r := pig.NewRouter()
+	r.GET("/", func(c *pig.Context) {
+		panic("error")
+	})
+
+	pig.New().Use(&Middleware{}).Router(r).Run(8088)
+}
+
+```
+
 
