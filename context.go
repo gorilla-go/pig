@@ -218,6 +218,14 @@ func (c *Context) Json(o any) {
 	}
 }
 
+func (c *Context) Echo(s string) {
+	c.ResponseWriter().Header().Set("Content-Type", "text/plain")
+	_, err := c.ResponseWriter().Write([]byte(s))
+	if err != nil {
+		panic(err)
+	}
+}
+
 func (c *Context) Logger() ILogger {
 	logger, err := do.Invoke[ILogger](c.Injector())
 	if err != nil {
@@ -226,7 +234,7 @@ func (c *Context) Logger() ILogger {
 	return logger
 }
 
-func (c *Context) GetConfig(s string) any {
+func (c *Context) Config(s string) any {
 	if c.config == nil {
 		config, err := do.Invoke[IConfig](c.Injector())
 		if err != nil {

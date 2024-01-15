@@ -6,13 +6,6 @@ import (
 
 func main() {
 	r := pig.NewRouter()
-	r.GET("/test/ss", func(c *pig.Context) {
-		postId := c.ParamVar().TrimString("post_id", "")
-		c.Json(map[string]interface{}{
-			"post_id": postId,
-		})
-	})
-
 	r.GET("/:id", func(c *pig.Context) {
 		postId := c.ParamVar().TrimString("id", "")
 		c.Json(map[string]interface{}{
@@ -20,14 +13,9 @@ func main() {
 		})
 	})
 
-	r.GET("/test/<id:[a-z]+>", func(context *pig.Context) {
-		context.Json(map[string]interface{}{
-			"test": context.ParamVar().TrimString("id", ""),
-		})
+	r.GET("/test/<id:[a-z]+>", func(c *pig.Context) {
+		c.Echo("ok")
 	})
 
-	err := pig.New().Router(r).Run()
-	if err != nil {
-		panic(err)
-	}
+	pig.New().Router(r).Run()
 }
