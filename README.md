@@ -257,7 +257,7 @@ import (
 func main() {
 	r := pig.NewRouter()
 	r.GET("/:id", func(context *pig.Context) {
-		req := do.MustInvoke[*http.Request](context.Injector())
+		req := context.Request()
 		context.Json(map[string]interface{}{
 			"method": req.Method,
 			"uri":    req.RequestURI,
@@ -346,4 +346,22 @@ func main() {
 	pig.New().Router(r).Run(8088)
 }
 ```
+###### 原生响应
+```go
+package main
+
+import (
+	"github.com/gorilla-go/pig"
+)
+
+func main() {
+	r := pig.NewRouter()
+	r.GET("/", func(context *pig.Context) {
+		context.ResponseWriter().Write([]byte("hello world"))
+	})
+
+	pig.New().Router(r).Run(8088)
+}
+```
+
 
