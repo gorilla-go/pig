@@ -470,5 +470,7 @@ func main() {
 }
 
 ```
+###### 依赖注入
 
+[请阅读第三方实现](github.com/samber/do)
 
