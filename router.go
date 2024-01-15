@@ -120,10 +120,9 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 		uri = strings.Trim(uri, "/")
 		path = strings.Trim(path, "/")
 
-		patternMode := strings.Contains(uri, ":") ||
+		patternMode := strings.Contains(path, ":") ||
 			strings.Contains(uri, "<") ||
 			strings.Contains(uri, ">")
-
 		if !patternMode && uri == path {
 			fn = methodMap.Get(requestMethod)
 			if m, ok := r.middlewareMap[r.ReqUniPath(uri, requestMethod)]; ok {
