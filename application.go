@@ -8,13 +8,17 @@ import (
 )
 
 type Application struct {
+	address    net.IP
+	port       int
 	middleware []IMiddleware
 	router     IRouter
+	version    string
 }
 
 func New() *Application {
 	return &Application{
 		middleware: []IMiddleware{},
+		version:    "1.0.0-beta",
 	}
 }
 
@@ -29,17 +33,29 @@ func (a *Application) Router(router IRouter) *Application {
 }
 
 func (a *Application) Run(port ...int) {
+	a.port = foundation.DefaultParam(port, 8080)
+	a.address = net.IPv4(0, 0, 0, 0)
+
 	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		NewKernel(a.router).Through(a.middleware).Handle(w, req)
 	})
 
+	a.PrintMeta()
 	err := http.ListenAndServe(
 		fmt.Sprintf(
 			"%s:%d",
-			net.IPv4(0, 0, 0, 0).String(),
-			foundation.DefaultParam(port, 8080),
+			a.address.String(),
+			a.port,
 		),
 		nil,
 	)
 	panic(err)
+}
+
+func (a *Application) PrintMeta() {
+	fmt.Println(
+		"   ___    ____ _____  _      __    __     ____             _        \n  / _ \\  /  _// ___/ | | /| / /__ / /    / __/__ _____  __(_)______ \n / ___/ _/ /_/ (_ /  | |/ |/ / -_) _ \\  _\\ \\/ -_) __/ |/ / / __/ -_)\n/_/  (_)___(_)___/   |__/|__/\\__/_.__/ /___/\\__/_/  |___/_/\\__/\\__/\n",
+	)
+	fmt.Println(fmt.Sprintf("listen:  %s:%d", a.address.String(), a.port))
+	fmt.Println(fmt.Sprintf("version: %s", a.version))
 }
