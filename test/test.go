@@ -29,5 +29,5 @@ func main() {
 		context.Download(context.FileVar()["file"], filepath.Base(path))
 	})
 
-	pig.New().Router(r).Run()
+	pig.New().Router(r).Run(8088)
 }
