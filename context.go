@@ -245,11 +245,7 @@ func (c *Context) Logger() ILogger {
 
 func (c *Context) Config(s string) any {
 	if c.config == nil {
-		config, err := do.Invoke[IConfig](c.Injector())
-		if err != nil {
-			panic(err)
-		}
-		c.config = config
+		c.config = do.MustInvoke[IConfig](c.Injector())
 	}
 	v, err := c.config.Get(s)
 	if err != nil {
