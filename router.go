@@ -120,7 +120,7 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 		uri = strings.Trim(uri, "/")
 		path = strings.Trim(path, "/")
 
-		patternMode := strings.Contains(path, ":") ||
+		patternMode := strings.Contains(uri, ":") ||
 			strings.Contains(uri, "<") ||
 			strings.Contains(uri, ">")
 		if !patternMode && uri == path {
@@ -143,7 +143,7 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 					return true
 				}
 
-				if len(path) > 4 && part[0] == '<' && part[len(part)-1] == '>' {
+				if len(part) > 4 && part[0] == '<' && part[len(part)-1] == '>' {
 					if strings.Contains(pathParts[i], ".") {
 						pathParts[i] = (strings.Split(pathParts[i], "."))[0]
 					}
@@ -163,7 +163,7 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 					continue
 				}
 
-				if len(path) > 1 && part[0] == ':' {
+				if len(part) > 1 && part[0] == ':' {
 					if strings.Contains(pathParts[i], ".") {
 						pathParts[i] = (strings.Split(pathParts[i], "."))[0]
 					}
