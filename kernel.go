@@ -43,6 +43,9 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 
 	k.Inject(w, req)
 
+	if k.router == nil {
+		panic("router unset.")
+	}
 	controllerAction, routerParams, cusMiddleware := k.router.Route(req.URL.Path, req.Method)
 	if controllerAction == nil {
 		w.WriteHeader(http.StatusNotFound)
