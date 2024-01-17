@@ -4,18 +4,13 @@ import (
 	"github.com/gorilla-go/pig"
 )
 
-type Middleware struct {
-}
-
-func (m *Middleware) Handle(context *pig.Context, f func(*pig.Context)) {
-	context.Response().Echo("error")
-}
-
 func main() {
 	r := pig.NewRouter()
 	r.GET("/:id", func(context *pig.Context) {
-		context.Response().Echo("hello world")
+		context.Response().Json(map[string]interface{}{
+			"code": 0,
+		})
 	})
 
-	pig.New().Use(&Middleware{}).Router(r).Run(8848)
+	pig.New().Router(r).Run(8848)
 }
