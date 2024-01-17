@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/gorilla-go/pig/di"
+	"github.com/gorilla-go/pig"
 )
 
 type User struct {
@@ -9,7 +9,10 @@ type User struct {
 }
 
 func main() {
-	container := di.New()
-	di.ProvideValue(container, &User{Name: "pig"})
-	di.MustInvoke[*User](container)
+	r := pig.NewRouter()
+	r.GET("/", func(context *pig.Context) {
+		context.Response().Echo("Hello World!")
+	})
+
+	pig.New().Router(r).Run(8848)
 }

@@ -41,8 +41,6 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 		}
 	}()
 
-	k.Inject(w, req)
-
 	if k.router == nil {
 		panic("router unset.")
 	}
@@ -56,20 +54,18 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 		k.middleware = cusMiddleware
 	}
 
-	if routerParams != nil && len(routerParams) > 0 {
-		di.ProvideValue[RouterParams](k.context.container, routerParams)
-	}
+	di.ProvideValue[*Context](k.context.container, k.context)
+	di.ProvideValue[IRouter](k.context.container, k.router)
+	di.ProvideLazy(k.context.container, func(c *di.Container) (*Request, error) {
+		return NewRequest(req, routerParams), nil
+	})
+	di.ProvideLazy(k.context.container, func(c *di.Container) (*Response, error) {
+		return NewResponse(w, req), nil
+	})
 
 	pipeline := NewPipeline[*Context]().Send(k.context)
 	for _, middleware := range k.middleware {
 		pipeline.Through(middleware.Handle)
 	}
 	pipeline.Then(controllerAction)
-}
-
-func (k *Kernel) Inject(w http.ResponseWriter, req *http.Request) {
-	di.ProvideValue[*http.Request](k.context.container, req)
-	di.ProvideValue[http.ResponseWriter](k.context.container, w)
-	di.ProvideValue[*Context](k.context.container, k.context)
-	di.ProvideValue[IRouter](k.context.container, k.router)
 }
