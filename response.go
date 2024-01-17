@@ -86,3 +86,13 @@ func (c *Response) Echo(s string, code ...int) {
 		panic(err)
 	}
 }
+
+func (c *Response) Html(s string, code ...int) {
+	httpCode := foundation.DefaultParam(code, http.StatusOK)
+	c.writer.WriteHeader(httpCode)
+	c.writer.Header().Set("Content-Type", "text/html")
+	_, err := c.writer.Write([]byte(s))
+	if err != nil {
+		panic(err)
+	}
+}
