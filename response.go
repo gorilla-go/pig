@@ -20,6 +20,10 @@ func NewResponse(w http.ResponseWriter, request *http.Request) *Response {
 	}
 }
 
+func (c *Response) Raw() http.ResponseWriter {
+	return c.writer
+}
+
 func (c *Response) Download(file *File, basename string) {
 	// download file
 	_, err := os.Stat(file.FilePath)

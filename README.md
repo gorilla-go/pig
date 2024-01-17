@@ -22,7 +22,7 @@ import (
 func main() {
 	r := pig.NewRouter()
 	r.GET("/", func(context *pig.Context) {
-		context.Echo("hello world")
+		context.Response().Echo("hello world")
 	})
 
 	pig.New().Router(r).Run(8088)
@@ -46,7 +46,7 @@ import (
 func main() {
 	r := pig.NewRouter()
 	r.GET("/user", func(context *pig.Context) {
-		context.Echo("hello world")
+		context.Response().Echo("hello world")
 	})
 
 	pig.New().Router(r).Run(8088)
@@ -62,7 +62,9 @@ import (
 func main() {
 	r := pig.NewRouter()
 	r.GET("/user/:id", func(context *pig.Context) {
-		context.Echo(context.ParamVar().TrimString("id"))
+		context.Response().Echo(
+			context.Request().ParamVar().TrimString("id"),
+        )
 	})
 
 	pig.New().Router(r).Run(8088)
@@ -78,7 +80,9 @@ import (
 func main() {
 	r := pig.NewRouter()
 	r.GET("/user/<id:\\d+>", func(context *pig.Context) {
-		context.Echo(context.ParamVar().TrimString("id"))
+		context.Response().Echo(
+			context.Request().ParamVar().TrimString("id"),
+        )
 	})
 
 	pig.New().Router(r).Run(8088)
@@ -96,7 +100,7 @@ import (
 func main() {
 	r := pig.NewRouter()
 	r.Miss(func(context *pig.Context) {
-		context.Echo("404")
+		context.Response().Echo("404")
 	})
 
 	pig.New().Router(r).Run(8088)
@@ -129,7 +133,7 @@ func (m *Middleware) Handle(context *pig.Context, next func(*pig.Context)) {
 func main() {
 	r := pig.NewRouter()
 	r.GET("/", func(context *pig.Context) {
-		context.Echo("Hello, World")
+		context.Response().Echo("Hello, World")
 	})
 
 	pig.New().Use(&Middleware{}).Router(r).Run(8088)
@@ -156,7 +160,7 @@ func (m *Middleware) Handle(context *pig.Context, next func(*pig.Context)) {
 func main() {
 	r := pig.NewRouter()
 	r.GET("/", func(context *pig.Context) {
-		context.Echo("Hello, World")
+		context.Response().Echo("Hello, World")
 	})
 
 	pig.New().Use(&Middleware{}).Router(r).Run(8088)
@@ -183,7 +187,7 @@ func (m *Middleware) Handle(context *pig.Context, next func(*pig.Context)) {
 func main() {
 	r := pig.NewRouter()
 	r.GET("/", func(context *pig.Context) {
-		context.Echo("Hello, World")
+		context.Response().Echo("Hello, World")
 	}, &Middleware{})
 
 	pig.New().Router(r).Run(8088)
@@ -208,16 +212,16 @@ func main() {
 	
 	// Get 请求参数
 	r.GET("/:id", func(context *pig.Context) {
-		context.Json(map[string]interface{}{
-			"id": context.ParamVar().Int("id"),
+		context.Response().Json(map[string]interface{}{
+			"id": context.Request().ParamVar().Int("id"),
 		})
 	})
 
 	// Post 请求参数
 	r.POST("/post/:id", func(context *pig.Context) {
-		context.Json(map[string]interface{}{
-			"id":   context.ParamVar().Int("id"),
-			"post": context.PostVar().String("post"),
+		context.Response().Json(map[string]interface{}{
+			"id":   context.Request().ParamVar().Int("id"),
+			"post": context.Request().PostVar().String("post"),
 		})
 	})
 
@@ -238,22 +242,22 @@ func main() {
 
 	// 上传
 	r.POST("/upload", func(context *pig.Context) {
-		filePath := context.FileVar()["file"].FilePath
-		context.Echo(filePath)
+		filePath := context.Request().FileVar()["file"].FilePath
+		context.Response().Echo(filePath)
 	})
 
 	// 归档存储
 	r.POST("/upload/archive", func(context *pig.Context) {
-		file := context.FileVar()["file"]
+		file := context.Request().FileVar()["file"]
 		file = file.ArchiveMove("/your/dest/dir")
-		context.Echo(file.FilePath)
+		context.Response().Echo(file.FilePath)
 	})
 
 	// 移动文件
 	r.POST("/upload/rename", func(context *pig.Context) {
-		file := context.FileVar()["file"]
+		file := context.Request().FileVar()["file"]
 		file = file.Move("/your/dest/file.jpg")
-		context.Echo(file.FilePath)
+		context.Response().Echo(file.FilePath)
 	})
 
 	pig.New().Router(r).Run(8088)
@@ -274,9 +278,9 @@ func main() {
 	r := pig.NewRouter()
 	r.GET("/:id", func(context *pig.Context) {
 		req := context.Request()
-		context.Json(map[string]interface{}{
-			"method": req.Method,
-			"uri":    req.RequestURI,
+		context.Response().Json(map[string]interface{}{
+			"method": req.Raw().Method,
+			"uri":    req.Raw().RequestURI,
 		})
 	})
 
@@ -297,7 +301,7 @@ import (
 func main() {
 	r := pig.NewRouter()
 	r.GET("/", func(context *pig.Context) {
-		context.Echo("hello world")
+		context.Response().Echo("hello world")
 	})
 
 	pig.New().Router(r).Run(8088)
@@ -315,8 +319,8 @@ import (
 func main() {
 	r := pig.NewRouter()
 	r.GET("/", func(context *pig.Context) {
-		context.Json(map[string]interface{}{
-			"id":   context.ParamVar().Int("id"),
+		context.Response().Json(map[string]interface{}{
+			"id":   context.Request().ParamVar().Int("id"),
 		})
 	})
 
@@ -335,7 +339,7 @@ import (
 func main() {
 	r := pig.NewRouter()
 	r.GET("/download", func(context *pig.Context) {
-		context.Download(
+		context.Response().Download(
 			pig.NewFile("/your/file/path.jpg"),
 			"filename.jpg",
 		)
@@ -356,7 +360,7 @@ import (
 func main() {
 	r := pig.NewRouter()
 	r.GET("/redirect", func(context *pig.Context) {
-		context.Redirect("/redirected", 302)
+		context.Response().Redirect("/redirected", 302)
 	})
 
 	pig.New().Router(r).Run(8088)
@@ -373,7 +377,7 @@ import (
 func main() {
 	r := pig.NewRouter()
 	r.GET("/", func(context *pig.Context) {
-		context.ResponseWriter().Write([]byte("hello world"))
+		context.Response().Raw().Write([]byte("hello world"))
 	})
 
 	pig.New().Router(r).Run(8088)
@@ -400,7 +404,6 @@ type User struct {
 func main() {
 	container := di.New()
 	di.ProvideLazy(container, func(c *di.Container) (*User, error) {
-		fmt.Println("build")
 		return &User{
 			Name: "pig",
 		}, nil
@@ -449,7 +452,6 @@ type User struct {
 func main() {
 	container := di.New()
 	di.ProvideNew(container, func(c *di.Container) (*User, error) {
-		fmt.Println("build")
 		return &User{
 			Name: "pig",
 		}, nil
@@ -546,7 +548,7 @@ type HttpErrorHandler struct {
 
 func (h *HttpErrorHandler) Handle(a any, context *pig.Context) {
 	fmt.Println("error targeted")
-	context.Echo("500", 500)
+	context.Response().Echo("500", 500)
 }
 
 type Middleware struct {

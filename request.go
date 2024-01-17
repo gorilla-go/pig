@@ -28,6 +28,10 @@ func NewRequest(req *http.Request, routerParams RouterParams) *Request {
 	}
 }
 
+func (c *Request) Raw() *http.Request {
+	return c.request
+}
+
 func (c *Request) ParamVar() *ReqParamHelper {
 	c.paramOnce.Do(func() {
 		paramVar := make(map[string]*ReqParamV)
