@@ -13,9 +13,9 @@ func (m *Middleware) Handle(context *pig.Context, f func(*pig.Context)) {
 
 func main() {
 	r := pig.NewRouter()
-	r.GET("/", func(context *pig.Context) {
+	r.GET("/:id", func(context *pig.Context) {
 		context.Response().Echo("hello world")
-	}, &Middleware{})
+	})
 
-	pig.New().Router(r).Run(8848)
+	pig.New().Use(&Middleware{}).Router(r).Run(8848)
 }
