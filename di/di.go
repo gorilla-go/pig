@@ -1,6 +1,7 @@
 package di
 
 import (
+	"errors"
 	"fmt"
 	"github.com/gorilla-go/pig/foundation"
 	"reflect"
@@ -112,7 +113,7 @@ func Invoke[T any](c *Container) (T, error) {
 		return t, nil
 	}
 
-	panic(fmt.Sprintf("DI: type %s not found", typeStr))
+	return *new(T), errors.New(fmt.Sprintf("DI: type %s not found", typeStr))
 }
 
 func InvokeNamed[T any](c *Container, name string) (T, error) {
@@ -145,7 +146,7 @@ func InvokeNamed[T any](c *Container, name string) (T, error) {
 		return t, nil
 	}
 
-	panic(fmt.Sprintf("DI: name %s not found", name))
+	return *new(T), errors.New(fmt.Sprintf("DI: name %s not found", name))
 }
 
 func MustInvoke[T any](c *Container) T {

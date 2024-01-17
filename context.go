@@ -26,15 +26,3 @@ func (c *Context) Request() *Request {
 func (c *Context) Response() *Response {
 	return di.MustInvoke[*Response](c.container)
 }
-
-func (c *Context) Logger() ILogger {
-	return di.MustInvoke[ILogger](c.container)
-}
-
-func (c *Context) Config(s string) any {
-	config, err := di.MustInvoke[IConfig](c.container).Get(s)
-	if err != nil {
-		panic(err)
-	}
-	return config
-}

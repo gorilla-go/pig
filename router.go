@@ -117,6 +117,7 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 			}
 		}
 
+		originUri := uri
 		uri = strings.Trim(uri, "/")
 		path = strings.Trim(path, "/")
 
@@ -125,7 +126,7 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 			strings.Contains(uri, ">")
 		if !patternMode && uri == path {
 			fn = methodMap.Get(requestMethod)
-			if m, ok := r.middlewareMap[r.ReqUniPath(uri, requestMethod)]; ok {
+			if m, ok := r.middlewareMap[r.ReqUniPath(originUri, requestMethod)]; ok {
 				middlewares = m
 			}
 			return false
@@ -175,8 +176,9 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 					return true
 				}
 			}
+
 			fn = methodMap.Get(requestMethod)
-			if m, ok := r.middlewareMap[r.ReqUniPath(uri, requestMethod)]; ok {
+			if m, ok := r.middlewareMap[r.ReqUniPath(originUri, requestMethod)]; ok {
 				middlewares = m
 			}
 			return false
