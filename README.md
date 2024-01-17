@@ -267,7 +267,6 @@ package main
 
 import (
 	"github.com/gorilla-go/pig"
-	"github.com/samber/do/v2"
 	"net/http"
 )
 
@@ -381,6 +380,87 @@ func main() {
 }
 ```
 
+##### 依赖注入
+
+---
+###### 懒加载
+> 懒加载会在使用的时候动态加载类, 内部自动实现了锁机制, 保证了线程安全.
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/gorilla-go/pig/di"
+)
+
+type User struct {
+	Name string
+}
+
+func main() {
+	container := di.New()
+	di.ProvideLazy(container, func(c *di.Container) (*User, error) {
+		fmt.Println("build")
+		return &User{
+			Name: "pig",
+		}, nil
+	})
+
+	di.MustInvoke[*User](container)
+}
+
+```
+
+###### 单例
+> 始终返回同一个实例.
+```go
+package main
+
+import (
+	"github.com/gorilla-go/pig/di"
+)
+
+type User struct {
+	Name string
+}
+
+func main() {
+	container := di.New()
+	di.ProvideValue(container, &User{Name: "pig"})
+	di.MustInvoke[*User](container)
+}
+
+```
+
+###### 及时加载
+> 在每次调用的时候, 构建一个全新的实例.
+```go
+package main
+
+import (
+	"fmt"
+	"github.com/gorilla-go/pig/di"
+)
+
+type User struct {
+	Name string
+}
+
+func main() {
+	container := di.New()
+	di.ProvideNew(container, func(c *di.Container) (*User, error) {
+		fmt.Println("build")
+		return &User{
+			Name: "pig",
+		}, nil
+	})
+
+	di.MustInvoke[*User](container)
+}
+
+```
+> 所有的加载方式均支持传入接口, 返回实例.
+
 ##### 最佳实践
 
 ---
@@ -410,7 +490,7 @@ package main
 
 import (
 	"github.com/gorilla-go/pig"
-	"github.com/samber/do/v2"
+	"github.com/gorilla-go/pig/di"
 	"log"
 )
 
@@ -436,7 +516,7 @@ type Middleware struct {
 }
 
 func (*Middleware) Handle(c *pig.Context, next func(*pig.Context)) {
-	do.ProvideValue[pig.ILogger](c.Injector(), &Logger{})
+	di.ProvideValue[pig.ILogger](c.Container(), &Logger{})
 	next(c)
 }
 
@@ -458,7 +538,7 @@ package main
 import (
 	"fmt"
 	"github.com/gorilla-go/pig"
-	"github.com/samber/do/v2"
+	"github.com/gorilla-go/pig/di"
 )
 
 type HttpErrorHandler struct {
@@ -473,7 +553,7 @@ type Middleware struct {
 }
 
 func (*Middleware) Handle(c *pig.Context, next func(*pig.Context)) {
-	do.ProvideValue[pig.IHttpErrorHandler](c.Injector(), &HttpErrorHandler{})
+	di.ProvideValue[pig.IHttpErrorHandler](c.Container(), &HttpErrorHandler{})
 	next(c)
 }
 
@@ -487,7 +567,5 @@ func main() {
 }
 
 ```
-###### 依赖注入
 
-[请阅读第三方实现](https://github.com/samber/do)
 

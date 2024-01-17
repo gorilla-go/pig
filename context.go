@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/bwmarrin/snowflake"
+	"github.com/gorilla-go/pig/di"
 	"github.com/gorilla-go/pig/foundation"
-	"github.com/samber/do/v2"
 	"io"
 	"math/rand"
 	"net/http"
@@ -15,7 +15,7 @@ import (
 )
 
 type Context struct {
-	injector  do.Injector
+	container *di.Container
 	paramVar  *ReqParamHelper
 	paramOnce sync.Once
 	postVar   *ReqParamHelper
@@ -27,16 +27,16 @@ type Context struct {
 
 func NewContext() *Context {
 	return &Context{
-		injector: do.New(),
+		container: di.New(),
 	}
 }
 
-func (c *Context) Injector() do.Injector {
-	return c.injector
+func (c *Context) Container() *di.Container {
+	return c.container
 }
 
 func (c *Context) routerParams() RouterParams {
-	routerParams, err := do.Invoke[RouterParams](c.injector)
+	routerParams, err := di.Invoke[RouterParams](c.container)
 	if err != nil {
 		return nil
 	}
@@ -45,18 +45,18 @@ func (c *Context) routerParams() RouterParams {
 }
 
 func (c *Context) Request() *http.Request {
-	return do.MustInvoke[*http.Request](c.injector)
+	return di.MustInvoke[*http.Request](c.container)
 }
 
 func (c *Context) ResponseWriter() http.ResponseWriter {
-	return do.MustInvoke[http.ResponseWriter](c.injector)
+	return di.MustInvoke[http.ResponseWriter](c.container)
 }
 
 func (c *Context) ParamVar() *ReqParamHelper {
 	c.paramOnce.Do(func() {
 		paramVar := make(map[string]*ReqParamV)
 
-		request := do.MustInvoke[*http.Request](c.Injector())
+		request := di.MustInvoke[*http.Request](c.container)
 		for n, v := range request.URL.Query() {
 			paramVar[n] = NewReqParamV(v)
 		}
@@ -77,7 +77,7 @@ func (c *Context) ParamVar() *ReqParamHelper {
 func (c *Context) PostVar() *ReqParamHelper {
 	c.postOnce.Do(func() {
 		postVar := make(map[string]*ReqParamV)
-		request := do.MustInvoke[*http.Request](c.Injector())
+		request := di.MustInvoke[*http.Request](c.container)
 		err := request.ParseForm()
 		if err != nil {
 			panic(err)
@@ -244,12 +244,12 @@ func (c *Context) Echo(s string, code ...int) {
 }
 
 func (c *Context) Logger() ILogger {
-	return do.MustInvoke[ILogger](c.Injector())
+	return di.MustInvoke[ILogger](c.container)
 }
 
 func (c *Context) Config(s string) any {
 	if c.config == nil {
-		c.config = do.MustInvoke[IConfig](c.Injector())
+		c.config = di.MustInvoke[IConfig](c.container)
 	}
 	v, err := c.config.Get(s)
 	if err != nil {

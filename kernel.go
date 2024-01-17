@@ -2,7 +2,7 @@ package pig
 
 import (
 	"fmt"
-	"github.com/samber/do/v2"
+	"github.com/gorilla-go/pig/di"
 	"log"
 	"net/http"
 	"runtime/debug"
@@ -29,7 +29,7 @@ func (k *Kernel) Through(middleware []IMiddleware) *Kernel {
 func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 	defer func() {
 		if errno := recover(); errno != nil {
-			errorHandler, err := do.Invoke[IHttpErrorHandler](k.context.Injector())
+			errorHandler, err := di.Invoke[IHttpErrorHandler](k.context.container)
 			if err != nil {
 				log.Println(fmt.Sprintf("%s\n\r%s", errno, string(debug.Stack())))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -57,7 +57,7 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 	}
 
 	if routerParams != nil && len(routerParams) > 0 {
-		do.ProvideValue[RouterParams](k.context.Injector(), routerParams)
+		di.ProvideValue[RouterParams](k.context.container, routerParams)
 	}
 
 	pipeline := NewPipeline[*Context]().Send(k.context)
@@ -68,8 +68,8 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 }
 
 func (k *Kernel) Inject(w http.ResponseWriter, req *http.Request) {
-	do.ProvideValue[*http.Request](k.context.Injector(), req)
-	do.ProvideValue[http.ResponseWriter](k.context.Injector(), w)
-	do.ProvideValue[*Context](k.context.Injector(), k.context)
-	do.ProvideValue[IRouter](k.context.Injector(), k.router)
+	di.ProvideValue[*http.Request](k.context.container, req)
+	di.ProvideValue[http.ResponseWriter](k.context.container, w)
+	di.ProvideValue[*Context](k.context.container, k.context)
+	di.ProvideValue[IRouter](k.context.container, k.router)
 }
