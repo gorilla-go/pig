@@ -6,7 +6,6 @@ import (
 
 type Context struct {
 	container *di.Container
-	config    IConfig
 }
 
 func NewContext() *Context {

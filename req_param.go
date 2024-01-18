@@ -76,6 +76,14 @@ func (r *ReqParamAtom) Bytes() []byte {
 	return []byte(r.v)
 }
 
+func (r *ReqParamV) Slice() []string {
+	var s = make([]string, len(r.v))
+	for i, v := range r.v {
+		s[i] = v.String()
+	}
+	return s
+}
+
 func (r *ReqParamV) String() string {
 	return r.v[0].String()
 }
@@ -118,6 +126,10 @@ func NewReqParamHelper(m ReqParams) *ReqParamHelper {
 
 func (h *ReqParamHelper) Raw() ReqParams {
 	return h.r
+}
+
+func (h *ReqParamHelper) Slice(s string) []string {
+	return h.r[s].Slice()
 }
 
 func (h *ReqParamHelper) Int(s string, def ...int) int {
