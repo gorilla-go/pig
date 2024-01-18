@@ -1,11 +1,15 @@
 package pig
 
 import (
+	"context"
 	"fmt"
 	"github.com/fatih/color"
 	"github.com/gorilla-go/pig/foundation"
 	"net"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 )
 
 type Application struct {
@@ -18,6 +22,8 @@ type Application struct {
 
 func New() *Application {
 	return &Application{
+		address:    net.ParseIP("0.0.0.0"),
+		port:       8080,
 		middleware: []IMiddleware{},
 		version:    "1.0.0-beta",
 	}
@@ -34,23 +40,32 @@ func (a *Application) Router(router IRouter) *Application {
 }
 
 func (a *Application) Run(port ...int) {
-	a.port = foundation.DefaultParam(port, 8080)
-	a.address = net.IPv4(0, 0, 0, 0)
-
-	http.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+	s := http.NewServeMux()
+	s.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		NewKernel(a.router).Through(a.middleware).Handle(w, req)
 	})
 
-	a.PrintMeta()
-	err := http.ListenAndServe(
-		fmt.Sprintf(
-			"%s:%d",
-			a.address.String(),
-			a.port,
-		),
-		nil,
-	)
-	panic(err)
+	a.port = foundation.DefaultParam(port, 8080)
+	server := &http.Server{
+		Addr:    fmt.Sprintf("%s:%d", a.address.String(), a.port),
+		Handler: s,
+	}
+
+	go func() {
+		a.PrintMeta()
+		err := server.ListenAndServe()
+		if err != nil && err != http.ErrServerClosed {
+			panic(err)
+		}
+	}()
+
+	sigs := make(chan os.Signal, 1)
+	signal.Notify(sigs, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	<-sigs
+	err := server.Shutdown(context.Background())
+	if err != nil {
+		panic(err)
+	}
 }
 
 func (a *Application) PrintMeta() {
