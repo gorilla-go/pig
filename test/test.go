@@ -2,14 +2,13 @@ package main
 
 import (
 	"github.com/gorilla-go/pig"
-	"time"
 )
 
 func main() {
 	r := pig.NewRouter()
 	r.GET("/", func(context *pig.Context) {
-		time.Sleep(time.Second * 10)
+		context.Response().Echo("Hello World!")
 	})
 
-	pig.New().Router(r).Run(8848)
+	pig.New().Pprof().Router(r).Run(8848)
 }

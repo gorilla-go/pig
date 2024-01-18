@@ -7,6 +7,7 @@ import (
 	"github.com/gorilla-go/pig/foundation"
 	"net"
 	"net/http"
+	"net/http/pprof"
 	"os"
 	"os/signal"
 	"syscall"
@@ -18,6 +19,7 @@ type Application struct {
 	middleware []IMiddleware
 	router     IRouter
 	version    string
+	pprof      bool
 }
 
 func New() *Application {
@@ -26,6 +28,7 @@ func New() *Application {
 		port:       8080,
 		middleware: []IMiddleware{},
 		version:    "1.0.0-beta",
+		pprof:      false,
 	}
 }
 
@@ -39,8 +42,22 @@ func (a *Application) Router(router IRouter) *Application {
 	return a
 }
 
+func (a *Application) Pprof() *Application {
+	a.pprof = true
+	return a
+}
+
 func (a *Application) Run(port ...int) {
 	s := http.NewServeMux()
+
+	if a.pprof {
+		s.HandleFunc("/debug/pprof/", pprof.Index)
+		s.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+		s.HandleFunc("/debug/pprof/profile", pprof.Profile)
+		s.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+		s.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	}
+
 	s.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
 		NewKernel(a.router).Through(a.middleware).Handle(w, req)
 	})
