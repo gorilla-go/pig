@@ -8,15 +8,19 @@ import (
 )
 
 type Router struct {
-	regRouteMap   *foundation.LinkedHashMap[string, *foundation.LinkedHashMap[string, func(*Context)]]
-	missRoute     func(*Context)
-	middlewareMap map[string][]IMiddleware
+	group           string
+	groupMiddleware []IMiddleware
+	regRouteMap     *foundation.LinkedHashMap[string, *foundation.LinkedHashMap[string, func(*Context)]]
+	missRoute       func(*Context)
+	middlewareMap   map[string][]IMiddleware
 }
 
 type RouterParams foundation.ReqParams
 
 func NewRouter() *Router {
 	return &Router{
+		group:           "",
+		groupMiddleware: make([]IMiddleware, 0),
 		regRouteMap: &foundation.LinkedHashMap[string, *foundation.LinkedHashMap[string, func(*Context)]]{
 			K: make([]string, 0),
 			M: make(map[string]*foundation.LinkedHashMap[string, func(*Context)]),
@@ -26,7 +30,23 @@ func NewRouter() *Router {
 }
 
 func (r *Router) addRoute(t string, path string, f func(*Context), middleware []IMiddleware) {
+	if len(path) == 0 {
+		panic("invalid router path.")
+	}
+
 	t = strings.ToUpper(t)
+	if r.group != "" {
+		if path[0] != '/' {
+			path = fmt.Sprintf("/%s", path)
+		}
+
+		if r.group[len(r.group)-1] == '/' {
+			r.group = r.group[:len(r.group)-1]
+		}
+
+		path = fmt.Sprintf("%s%s", r.group, path)
+	}
+
 	if r.regRouteMap.ContainsKey(path) == false {
 		r.regRouteMap.Put(path, &foundation.LinkedHashMap[string, func(*Context)]{
 			K: make([]string, 0),
@@ -37,6 +57,12 @@ func (r *Router) addRoute(t string, path string, f func(*Context), middleware []
 
 	if len(middleware) > 0 {
 		r.middlewareMap[r.ReqUniPath(path, t)] = middleware
+		return
+	}
+
+	if len(r.groupMiddleware) > 0 {
+		r.middlewareMap[r.ReqUniPath(path, t)] = r.groupMiddleware
+		return
 	}
 }
 
@@ -82,6 +108,30 @@ func (r *Router) TRACE(path string, f func(*Context), middleware ...IMiddleware)
 
 func (r *Router) ANY(path string, f func(*Context), middleware ...IMiddleware) {
 	r.addRoute("ANY", path, f, middleware)
+}
+
+func (r *Router) Group(path string, f func(r *Router), middleware ...IMiddleware) {
+	if len(path) == 0 {
+		panic("invalid group router path.")
+	}
+	router := &Router{
+		group:           path,
+		groupMiddleware: middleware,
+		regRouteMap: &foundation.LinkedHashMap[string, *foundation.LinkedHashMap[string, func(*Context)]]{
+			K: make([]string, 0),
+			M: make(map[string]*foundation.LinkedHashMap[string, func(*Context)]),
+		},
+		middlewareMap: make(map[string][]IMiddleware),
+	}
+	f(router)
+
+	router.regRouteMap.ForEach(func(uri string, methodMap *foundation.LinkedHashMap[string, func(*Context)]) bool {
+		methodMap.ForEach(func(method string, fn func(*Context)) bool {
+			r.addRoute(method, uri, fn, router.middlewareMap[r.ReqUniPath(uri, method)])
+			return true
+		})
+		return true
+	})
 }
 
 func (r *Router) Miss(f func(*Context)) *Router {

@@ -2,35 +2,43 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla-go/pig/di"
+	"github.com/gorilla-go/pig"
 )
 
-type Form struct {
-	id   int    `query:"id" form:"id"`
-	name string `query:"name" form:"name"`
+type Middleware1 struct {
 }
 
-func (f *Form) Name() {
-	fmt.Println(f.name)
+func (m *Middleware1) Handle(context *pig.Context, f func(*pig.Context)) {
+	//TODO implement me
+	fmt.Println("middleware1")
+	f(context)
 }
 
-type IForm interface {
-	Name()
+type Middleware2 struct {
 }
 
-type IncludeForm struct {
-	form IForm `di:""`
+func (m *Middleware2) Handle(context *pig.Context, f func(*pig.Context)) {
+	//TODO implement me
+	fmt.Println("middleware2")
+	f(context)
+}
+
+type Middleware3 struct {
+}
+
+func (m *Middleware3) Handle(context *pig.Context, f func(*pig.Context)) {
+	//TODO implement me
+	fmt.Println("middleware3")
+	f(context)
 }
 
 func main() {
-	container := di.New()
-	di.ProvideLazy[IForm](container, func(c *di.Container) (any, error) {
-		return &Form{
-			id:   1,
-			name: "test",
-		}, nil
+	router := pig.NewRouter()
+	router.Group("/", func(r *pig.Router) {
+		r.GET("test", func(c *pig.Context) {
+			fmt.Println("ok")
+		})
 	})
 
-	inject := di.Inject(container, &IncludeForm{})
-	inject.form.Name()
+	pig.New().Use(&Middleware3{}).Router(router).Run(8081)
 }
