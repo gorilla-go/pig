@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"github.com/gorilla-go/pig/foundation"
 	"reflect"
+	"strings"
+	"unsafe"
 )
 
 type Provider[T any] func(c *Container) (T, error)
@@ -88,7 +90,7 @@ func ProvideNew[T any](c *Container, provider Provider[T], name ...string) {
 	c.rebuild[typeStr] = provider
 }
 
-func Invoke[T any](c *Container) (T, error) {
+func Invoke[T any](c *Container, t ...T) (T, error) {
 	typeStr := typeName(typeToString[T]())
 	if v, ok := c.rebuild[typeStr]; ok {
 		return v.(Provider[T])(c)
@@ -149,8 +151,8 @@ func InvokeNamed[T any](c *Container, name string) (T, error) {
 	return *new(T), errors.New(fmt.Sprintf("DI: name %s not found", name))
 }
 
-func MustInvoke[T any](c *Container) T {
-	v, err := Invoke[T](c)
+func MustInvoke[T any](c *Container, t ...T) T {
+	v, err := Invoke(c, t...)
 	if err != nil {
 		panic(err)
 	}
@@ -165,10 +167,42 @@ func MustInvokeNamed[T any](c *Container, name string) T {
 	return v
 }
 
-func typeToString[T any]() string {
-	t := fmt.Sprintf("%T", *new(T))
-	if t == "<nil>" {
-		return reflect.TypeOf((*T)(nil)).Elem().String()
+func Inject[T any](c *Container, s T) T {
+	v := reflect.ValueOf(s)
+	t := v.Type()
+	if t.Kind() == reflect.Ptr {
+		v = v.Elem()
+		t = t.Elem()
 	}
-	return t
+
+	if t.Kind() != reflect.Struct {
+		panic("inject target must be struct or struct pointer.")
+	}
+
+	for i := 0; i < v.NumField(); i++ {
+		tag := ""
+		field := v.Type().Field(i)
+
+		tag = strings.TrimSpace(field.Tag.Get("inject"))
+		if tag != "" {
+			foundation.ServiceInjector(
+				field.Type,
+				MustInvokeNamed[any](c, tag),
+				unsafe.Pointer(v.Field(i).UnsafeAddr()),
+			)
+			continue
+		}
+
+		foundation.ServiceInjector(
+			field.Type,
+			MustInvoke(c, reflect.New(field.Type).Elem().Interface()),
+			unsafe.Pointer(v.Field(i).UnsafeAddr()),
+		)
+
+	}
+	return s
+}
+
+func typeToString[T any]() string {
+	return reflect.TypeOf((*T)(nil)).Elem().String()
 }

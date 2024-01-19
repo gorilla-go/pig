@@ -13,7 +13,7 @@ type Router struct {
 	middlewareMap map[string][]IMiddleware
 }
 
-type RouterParams ReqParams
+type RouterParams foundation.ReqParams
 
 func NewRouter() *Router {
 	return &Router{
@@ -160,7 +160,7 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 						return true
 					}
 
-					routerParams[pathFormatArr[0]] = NewReqParamV([]string{pathParts[i]})
+					routerParams[pathFormatArr[0]] = foundation.NewReqParamV([]string{pathParts[i]})
 					continue
 				}
 
@@ -168,7 +168,7 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 					if strings.Contains(pathParts[i], ".") {
 						pathParts[i] = (strings.Split(pathParts[i], "."))[0]
 					}
-					routerParams[part[1:]] = NewReqParamV([]string{pathParts[i]})
+					routerParams[part[1:]] = foundation.NewReqParamV([]string{pathParts[i]})
 					continue
 				}
 

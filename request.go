@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/bwmarrin/snowflake"
-	"github.com/samber/lo"
+	"github.com/gorilla-go/pig/foundation"
 	"io"
 	"math/rand"
 	"net/http"
@@ -19,9 +19,9 @@ import (
 type Request struct {
 	request      *http.Request
 	routerParams RouterParams
-	paramVar     *ReqParamHelper
+	paramVar     *foundation.ReqParamHelper
 	paramOnce    sync.Once
-	postVar      *ReqParamHelper
+	postVar      *foundation.ReqParamHelper
 	postOnce     sync.Once
 	fileVar      map[string]*File
 	fileOnce     sync.Once
@@ -38,9 +38,9 @@ func (c *Request) Raw() *http.Request {
 	return c.request
 }
 
-func (c *Request) ParamVar() *ReqParamHelper {
+func (c *Request) ParamVar() *foundation.ReqParamHelper {
 	c.paramOnce.Do(func() {
-		paramVar := make(map[string]*ReqParamV)
+		paramVar := make(map[string]*foundation.ReqParamV)
 
 		request := c.request
 		rawQuery := request.URL.RawQuery
@@ -52,10 +52,12 @@ func (c *Request) ParamVar() *ReqParamHelper {
 					k := strings.TrimSpace(kvArr[0])
 					v := strings.TrimSpace(kvArr[1])
 					if _, ok := paramVar[k]; ok {
-						paramVar[k].v = append(paramVar[k].v, NewReqParamAtom(v))
+						paramVar[k].SetReqParamAtoms(
+							append(paramVar[k].ReqParamAtoms(), foundation.NewReqParamAtom(v)),
+						)
 						continue
 					}
-					paramVar[k] = NewReqParamV([]string{v})
+					paramVar[k] = foundation.NewReqParamV([]string{v})
 				}
 			}
 		}
@@ -67,22 +69,22 @@ func (c *Request) ParamVar() *ReqParamHelper {
 			}
 		}
 
-		c.paramVar = NewReqParamHelper(paramVar)
+		c.paramVar = foundation.NewReqParamHelper(paramVar)
 	})
 
 	return c.paramVar
 }
 
-func (c *Request) PostVar() *ReqParamHelper {
+func (c *Request) PostVar() *foundation.ReqParamHelper {
 	c.postOnce.Do(func() {
-		postVar := make(map[string]*ReqParamV)
+		postVar := make(map[string]*foundation.ReqParamV)
 		request := c.request
 		err := request.ParseForm()
 		if err != nil {
 			panic(err)
 		}
 		for n, v := range request.PostForm {
-			postVar[n] = NewReqParamV(v)
+			postVar[n] = foundation.NewReqParamV(v)
 		}
 
 		contentType := request.Header.Get("Content-Type")
@@ -100,7 +102,7 @@ func (c *Request) PostVar() *ReqParamHelper {
 			}
 
 			for n, v := range j {
-				postVar[n] = NewReqParamV([]string{v})
+				postVar[n] = foundation.NewReqParamV([]string{v})
 			}
 		}
 
@@ -126,13 +128,13 @@ func (c *Request) PostVar() *ReqParamHelper {
 						if err != nil {
 							panic(err)
 						}
-						postVar[formName] = NewReqParamV([]string{buf.String()})
+						postVar[formName] = foundation.NewReqParamV([]string{buf.String()})
 					}
 				}
 			}
 		}
 
-		c.postVar = NewReqParamHelper(postVar)
+		c.postVar = foundation.NewReqParamHelper(postVar)
 	})
 	return c.postVar
 }
@@ -228,7 +230,7 @@ func (c *Request) Bind(t any) {
 
 		tag = strings.TrimSpace(field.Tag.Get("form"))
 		if tag != "" {
-			injector(
+			foundation.RequestInjector(
 				field.Type,
 				(c.PostVar().Raw())[tag],
 				unsafe.Pointer(v.Field(i).UnsafeAddr()),
@@ -237,94 +239,11 @@ func (c *Request) Bind(t any) {
 
 		tag = strings.TrimSpace(field.Tag.Get("query"))
 		if tag != "" {
-			injector(
+			foundation.RequestInjector(
 				field.Type,
 				(c.ParamVar().Raw())[tag],
 				unsafe.Pointer(v.Field(i).UnsafeAddr()),
 			)
 		}
 	}
-}
-
-func injector(tp reflect.Type, val *ReqParamV, at unsafe.Pointer) {
-	if val != nil && len(val.v) > 0 && canInjected(tp.Kind()) {
-		reflect.NewAt(tp, at).Elem().Set(
-			reflect.ValueOf(convertStringToKind(val, tp)),
-		)
-	}
-}
-
-func canInjected(k reflect.Kind) bool {
-	return lo.IndexOf([]reflect.Kind{
-		reflect.Bool,
-		reflect.Int,
-		reflect.Int8,
-		reflect.Int16,
-		reflect.Int32,
-		reflect.Int64,
-		reflect.Uint,
-		reflect.Uint8,
-		reflect.Uint16,
-		reflect.Uint32,
-		reflect.Uint64,
-		reflect.Float32,
-		reflect.Float64,
-		reflect.Interface,
-		reflect.Slice,
-		reflect.String,
-	}, k) != -1
-}
-
-func convertStringToKind(s *ReqParamV, k reflect.Type) any {
-	switch k.Kind() {
-	case reflect.Bool:
-		return s.Bool()
-	case reflect.Int:
-		return s.Int()
-	case reflect.Int8:
-		return int8(s.Int())
-	case reflect.Int16:
-		return int16(s.Int())
-	case reflect.Int32:
-		return int32(s.Int())
-	case reflect.Int64:
-		return s.Int64()
-	case reflect.Uint:
-		return uint(s.Int())
-	case reflect.Uint8:
-		return uint8(s.Int())
-	case reflect.Uint16:
-		return uint16(s.Int())
-	case reflect.Uint32:
-		return uint32(s.Int())
-	case reflect.Uint64:
-		return uint64(s.Int())
-	case reflect.Float32:
-		return float32(s.Float64())
-	case reflect.Float64:
-		return s.Float64()
-	case reflect.Slice:
-		sType := reflect.SliceOf(k.Elem())
-		l := len(s.v)
-		slice := reflect.MakeSlice(sType, l, l)
-		for i := 0; i < l; i++ {
-			itemType := slice.Index(i).Type()
-			if !canInjected(slice.Index(i).Type().Kind()) {
-				panic("unsupported inject type: []" + itemType.String())
-			}
-			slice.Index(i).Set(reflect.ValueOf(
-				convertStringToKind(
-					NewReqParamV([]string{s.v[i].String()}),
-					itemType,
-				),
-			))
-		}
-		return slice.Interface()
-	case reflect.Interface:
-		return s.String()
-	case reflect.String:
-		return s.String()
-	}
-
-	return nil
 }

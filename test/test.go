@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/gorilla-go/pig"
+	"github.com/gorilla-go/pig/di"
 )
 
 type Form struct {
@@ -10,14 +10,19 @@ type Form struct {
 	name string `query:"name" form:"name"`
 }
 
+type IncludeForm struct {
+	form *Form `di:""`
+}
+
 func main() {
-	r := pig.NewRouter()
-	r.GET("/", func(c *pig.Context) {
-		form := &Form{}
-		c.Request().Bind(form)
-		fmt.Println(form)
-		c.Response().Echo("Hello, World!")
+	container := di.New()
+	di.ProvideLazy(container, func(*di.Container) (*Form, error) {
+		return &Form{
+			id:   1,
+			name: "test",
+		}, nil
 	})
 
-	pig.New().Router(r).Run(8081)
+	inject := di.Inject(container, &IncludeForm{})
+	fmt.Println(inject.form.id)
 }
