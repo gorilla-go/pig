@@ -9,9 +9,9 @@ import (
 	"unsafe"
 )
 
-type Provider[T any] func(c *Container) (T, error)
+type Provider func(c *Container) (any, error)
 
-func ProvideLazy[T any](c *Container, provider Provider[T], name ...string) {
+func ProvideLazy[T any](c *Container, provider Provider, name ...string) {
 	registerName := foundation.DefaultParam(name, "")
 	typeStr := typeName(typeToString[T]())
 
@@ -70,7 +70,7 @@ func ProvideValue[T any](c *Container, value T, name ...string) {
 	c.eager[typeStr] = value
 }
 
-func ProvideNew[T any](c *Container, provider Provider[T], name ...string) {
+func ProvideNew[T any](c *Container, provider Provider, name ...string) {
 	registerName := foundation.DefaultParam(name, "")
 	typeStr := typeName(typeToString[T]())
 
@@ -90,10 +90,11 @@ func ProvideNew[T any](c *Container, provider Provider[T], name ...string) {
 	c.rebuild[typeStr] = provider
 }
 
-func Invoke[T any](c *Container, t ...T) (T, error) {
+func Invoke[T any](c *Container) (T, error) {
 	typeStr := typeName(typeToString[T]())
 	if v, ok := c.rebuild[typeStr]; ok {
-		return v.(Provider[T])(c)
+		a, err := v.(Provider)(c)
+		return a.(T), err
 	}
 
 	c.locker.Lock()
@@ -103,16 +104,16 @@ func Invoke[T any](c *Container, t ...T) (T, error) {
 	}
 
 	if v, ok := c.lazy[typeStr]; ok {
-		t, err := v.(Provider[T])(c)
+		t, err := v.(Provider)(c)
 		if err != nil {
-			return t, err
+			return t.(T), err
 		}
 
 		if _, ok := c.eager[typeStr]; ok {
 			panic(fmt.Sprintf("DI: type %s already exists", typeStr))
 		}
 		c.eager[typeStr] = t
-		return t, nil
+		return t.(T), nil
 	}
 
 	return *new(T), errors.New(fmt.Sprintf("DI: type %s not found", typeStr))
@@ -120,7 +121,11 @@ func Invoke[T any](c *Container, t ...T) (T, error) {
 
 func InvokeNamed[T any](c *Container, name string) (T, error) {
 	if v, ok := c.rebuildNamed[name]; ok {
-		return c.rebuild[v].(Provider[T])(c)
+		a, err := c.rebuild[v].(Provider)(c)
+		if err != nil {
+			return a.(T), err
+		}
+		return a.(T), nil
 	}
 
 	c.locker.Lock()
@@ -130,9 +135,9 @@ func InvokeNamed[T any](c *Container, name string) (T, error) {
 	}
 
 	if v, ok := c.lazyNamed[name]; ok {
-		t, err := c.lazy[v].(Provider[T])(c)
+		t, err := c.lazy[v].(Provider)(c)
 		if err != nil {
-			return t, err
+			return t.(T), err
 		}
 
 		if _, ok := c.eagerNamed[name]; ok {
@@ -145,14 +150,14 @@ func InvokeNamed[T any](c *Container, name string) (T, error) {
 
 		c.eager[v] = t
 		c.eagerNamed[name] = v
-		return t, nil
+		return t.(T), nil
 	}
 
 	return *new(T), errors.New(fmt.Sprintf("DI: name %s not found", name))
 }
 
 func MustInvoke[T any](c *Container, t ...T) T {
-	v, err := Invoke(c, t...)
+	v, err := Invoke[T](c)
 	if err != nil {
 		panic(err)
 	}
@@ -183,7 +188,7 @@ func Inject[T any](c *Container, s T) T {
 		tag := ""
 		field := v.Type().Field(i)
 
-		tag = strings.TrimSpace(field.Tag.Get("inject"))
+		tag = strings.TrimSpace(field.Tag.Get("di"))
 		if tag != "" {
 			foundation.ServiceInjector(
 				field.Type,
@@ -193,14 +198,44 @@ func Inject[T any](c *Container, s T) T {
 			continue
 		}
 
+		s, err := invokeTypeName(c, typeName(field.Type.String()))
+		if err != nil {
+			panic(err)
+		}
 		foundation.ServiceInjector(
 			field.Type,
-			MustInvoke(c, reflect.New(field.Type).Elem().Interface()),
+			s,
 			unsafe.Pointer(v.Field(i).UnsafeAddr()),
 		)
-
 	}
 	return s
+}
+
+func invokeTypeName(c *Container, typeStr typeName) (any, error) {
+	if v, ok := c.rebuild[typeStr]; ok {
+		return v.(Provider)(c)
+	}
+
+	c.locker.Lock()
+	defer c.locker.Unlock()
+	if v, ok := c.eager[typeStr]; ok {
+		return v, nil
+	}
+
+	if v, ok := c.lazy[typeStr]; ok {
+		t, err := v.(Provider)(c)
+		if err != nil {
+			return t, err
+		}
+
+		if _, ok := c.eager[typeStr]; ok {
+			panic(fmt.Sprintf("DI: type %s already exists", typeStr))
+		}
+		c.eager[typeStr] = t
+		return t, nil
+	}
+
+	panic(fmt.Sprintf("DI: type %s not found", typeStr))
 }
 
 func typeToString[T any]() string {

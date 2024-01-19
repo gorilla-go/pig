@@ -7,9 +7,7 @@ import (
 )
 
 func ServiceInjector(tp reflect.Type, t any, at unsafe.Pointer) {
-	if CanInjected(tp.Kind()) {
-		reflect.NewAt(tp, at).Elem().Set(reflect.ValueOf(t))
-	}
+	reflect.NewAt(tp, at).Elem().Set(reflect.ValueOf(t))
 }
 
 func RequestInjector(tp reflect.Type, val *ReqParamV, at unsafe.Pointer) {

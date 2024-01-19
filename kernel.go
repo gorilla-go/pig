@@ -56,12 +56,8 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 
 	di.ProvideValue[*Context](k.context.container, k.context)
 	di.ProvideValue[IRouter](k.context.container, k.router)
-	di.ProvideLazy(k.context.container, func(c *di.Container) (*Request, error) {
-		return NewRequest(req, routerParams), nil
-	})
-	di.ProvideLazy(k.context.container, func(c *di.Container) (*Response, error) {
-		return NewResponse(w, req), nil
-	})
+	di.ProvideValue[*Request](k.context.container, NewRequest(req, routerParams))
+	di.ProvideValue[*Response](k.context.container, NewResponse(w, req))
 
 	pipeline := NewPipeline[*Context]().Send(k.context)
 	for _, middleware := range k.middleware {

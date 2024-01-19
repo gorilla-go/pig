@@ -10,13 +10,21 @@ type Form struct {
 	name string `query:"name" form:"name"`
 }
 
+func (f *Form) Name() {
+	fmt.Println(f.name)
+}
+
+type IForm interface {
+	Name()
+}
+
 type IncludeForm struct {
-	form *Form `di:""`
+	form IForm `di:""`
 }
 
 func main() {
 	container := di.New()
-	di.ProvideLazy(container, func(*di.Container) (*Form, error) {
+	di.ProvideLazy[IForm](container, func(c *di.Container) (any, error) {
 		return &Form{
 			id:   1,
 			name: "test",
@@ -24,5 +32,5 @@ func main() {
 	})
 
 	inject := di.Inject(container, &IncludeForm{})
-	fmt.Println(inject.form.id)
+	inject.form.Name()
 }
