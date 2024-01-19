@@ -35,10 +35,10 @@ func (m *Middleware3) Handle(context *pig.Context, f func(*pig.Context)) {
 func main() {
 	router := pig.NewRouter()
 	router.Group("/", func(r *pig.Router) {
-		r.GET("test", func(c *pig.Context) {
-			fmt.Println("ok")
-		})
-	})
+		r.GET("test", func(context *pig.Context) {
+			fmt.Println("test")
+		}, &Middleware3{})
+	}, &Middleware2{})
 
-	pig.New().Use(&Middleware3{}).Router(router).Run(8081)
+	pig.New().Use(&Middleware1{}).Router(router).Run(8081)
 }

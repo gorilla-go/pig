@@ -185,10 +185,13 @@ func Inject[T any](c *Container, s T) T {
 	}
 
 	for i := 0; i < v.NumField(); i++ {
-		tag := ""
 		field := v.Type().Field(i)
+		tag, ok := field.Tag.Lookup("id")
+		if !ok {
+			continue
+		}
 
-		tag = strings.TrimSpace(field.Tag.Get("di"))
+		tag = strings.TrimSpace(tag)
 		if tag != "" {
 			foundation.ServiceInjector(
 				field.Type,
