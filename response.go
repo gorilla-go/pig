@@ -77,7 +77,7 @@ func (c *Response) Json(o any, code ...int) {
 	}
 }
 
-func (c *Response) Echo(s string, code ...int) {
+func (c *Response) Text(s string, code ...int) {
 	httpCode := foundation.DefaultParam(code, http.StatusOK)
 	c.writer.WriteHeader(httpCode)
 	c.writer.Header().Set("Content-Type", "text/plain; charset=utf-8")

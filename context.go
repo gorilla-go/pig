@@ -2,6 +2,7 @@ package pig
 
 import (
 	"github.com/gorilla-go/pig/di"
+	"github.com/gorilla-go/pig/validate"
 )
 
 type Context struct {
@@ -16,6 +17,10 @@ func NewContext() *Context {
 
 func (c *Context) Container() *di.Container {
 	return c.container
+}
+
+func (c *Context) Validator() validate.IValidator {
+	return di.MustInvoke[validate.IValidator](c.container)
 }
 
 func (c *Context) Request() *Request {

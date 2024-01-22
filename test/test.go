@@ -1,44 +1,30 @@
 package main
 
 import (
-	"fmt"
 	"github.com/gorilla-go/pig"
+	"github.com/gorilla-go/pig/validate"
 )
 
-type Middleware1 struct {
-}
-
-func (m *Middleware1) Handle(context *pig.Context, f func(*pig.Context)) {
-	//TODO implement me
-	fmt.Println("middleware1")
-	f(context)
-}
-
-type Middleware2 struct {
-}
-
-func (m *Middleware2) Handle(context *pig.Context, f func(*pig.Context)) {
-	//TODO implement me
-	fmt.Println("middleware2")
-	f(context)
-}
-
-type Middleware3 struct {
-}
-
-func (m *Middleware3) Handle(context *pig.Context, f func(*pig.Context)) {
-	//TODO implement me
-	fmt.Println("middleware3")
-	f(context)
+type Form struct {
+	Username string `json:"username" query:"username" validate:"required,email" msg:"username is required"`
 }
 
 func main() {
+	v := validate.New(map[string]validate.Checker{
+		"required": validate.Required,
+		"email":    validate.Email,
+	})
 	router := pig.NewRouter()
-	router.Group("/", func(r *pig.Router) {
-		r.GET("test", func(context *pig.Context) {
-			fmt.Println("test")
-		}, &Middleware3{})
-	}, &Middleware2{})
+	router.GET("/", func(ctx *pig.Context) {
+		form := &Form{}
+		ctx.Request().Bind(form)
+		err := v.Validate(form)
+		if err != nil {
+			ctx.Response().Text(err.Error())
+			return
+		}
+		ctx.Response().Text(ctx.Request().ParamVar().TrimString("username"))
+	})
 
-	pig.New().Use(&Middleware1{}).Router(router).Run(8081)
+	pig.New().Router(router).Run(8081)
 }
