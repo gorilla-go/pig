@@ -40,7 +40,7 @@ func main() {
 			ctx.Response().Text(err.Error())
 			return
 		}
-		ctx.Response().Text(ctx.Request().ParamVar().TrimString("username"))
+		ctx.Response().Text(ctx.Request().ParamVar().Lmt("username", []string{}, "ok").String())
 	})
 
 	pig.New().Router(router).Run(8081)

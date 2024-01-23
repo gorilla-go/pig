@@ -498,19 +498,19 @@ import (
 
 type Logger struct{}
 
-func (*Logger) Info(message string, c *pig.Context) {
+func (*Logger) Info(message string) {
 	log.Println(message)
 }
 
-func (*Logger) Debug(message string, c *pig.Context) {
+func (*Logger) Debug(message string) {
 	log.Println(message)
 }
 
-func (*Logger) Warning(message string, c *pig.Context) {
+func (*Logger) Warning(message string) {
 	log.Println(message)
 }
 
-func (*Logger) Fatal(message string, c *pig.Context) {
+func (*Logger) Fatal(message string) {
 	log.Println(message)
 }
 
