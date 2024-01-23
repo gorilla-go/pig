@@ -226,6 +226,10 @@ func (c *Request) IsDelete() bool {
 	return c.request.Method == "DELETE"
 }
 
+func (c *Request) IsOption() bool {
+	return c.request.Method == "OPTION"
+}
+
 func (c *Request) Bind(t any) {
 	v := reflect.ValueOf(t)
 	if v.Kind() == reflect.Ptr {
