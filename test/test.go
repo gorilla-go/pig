@@ -6,7 +6,11 @@ import (
 )
 
 type Form struct {
-	Username string `json:"username" query:"username" validate:"required" msg:"username is required"`
+	Username  string `query:"username" validate:"required" msg:"用户名不能为空"`
+	Pass      string `query:"pass" validate:"required,minLen=6" msg:"密码不能为空"`
+	PassAgain string `query:"pass_again" validate:"sameAs=Pass" msg:"两次密码不一致"`
+	Email     string `query:"email" validate:"required,email" msg:"邮箱格式不正确"`
+	Phone     string `query:"phone" validate:"cnPhone" msg:"手机号格式不正确"`
 }
 
 func main() {
@@ -15,7 +19,11 @@ func main() {
 		"email":    validate.Email,
 		"len":      validate.Len,
 		"oneOf":    validate.OneOf,
+		"sameAs":   validate.SameAs,
+		"minLen":   validate.MinLen,
+		"cnPhone":  validate.CnPhone,
 	})
+
 	router := pig.NewRouter()
 	router.GET("/", func(ctx *pig.Context) {
 		form := &Form{}

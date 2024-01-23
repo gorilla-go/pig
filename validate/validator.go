@@ -2,6 +2,8 @@ package validate
 
 import (
 	"errors"
+	"fmt"
+	"github.com/samber/lo"
 	"reflect"
 	"strings"
 )
@@ -43,8 +45,24 @@ func (v *Validator) Validate(s any) error {
 		}
 
 		cna := strings.Split(value, ",")
+		for i, v := range cna {
+			cna[i] = strings.TrimSpace(v)
+		}
+
+		requiredName := ""
+		for n, checker := range v.Checkers {
+			if fmt.Sprintf("%p", checker) == fmt.Sprintf("%p", Required) {
+				requiredName = n
+			}
+		}
+		requiredName = strings.TrimSpace(requiredName)
+		if requiredName != "" &&
+			lo.IndexOf(cna, requiredName) == -1 &&
+			v.Checkers[requiredName](pv, "", val) != true {
+			continue
+		}
+
 		for _, checkerName := range cna {
-			checkerName = strings.TrimSpace(checkerName)
 			if checkerName == "" {
 				continue
 			}

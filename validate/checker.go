@@ -7,22 +7,10 @@ import (
 )
 
 var Required = func(memberVal reflect.Value, condition string, structVal reflect.Value) bool {
-	switch memberVal.Kind() {
-	case reflect.String:
-		return memberVal.String() != ""
-	case reflect.Slice, reflect.Array, reflect.Map:
-		return memberVal.Len() > 0
-	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64:
-		return memberVal.Int() != 0
-	case reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return memberVal.Uint() != 0
-	case reflect.Float32, reflect.Float64:
-		return memberVal.Float() != 0
-	case reflect.Ptr, reflect.Interface:
-		return !memberVal.IsNil()
-	default:
-		return false
+	if memberVal.IsValid() && !memberVal.IsZero() {
+		return true
 	}
+	return false
 }
 
 var Min = func(memberVal reflect.Value, condition string, structVal reflect.Value) bool {
@@ -277,4 +265,17 @@ var OneOf = func(memberVal reflect.Value, condition string, structVal reflect.Va
 		}
 	}
 	return false
+}
+
+var SameAs = func(memberVal reflect.Value, condition string, structVal reflect.Value) bool {
+	compareVal := structVal.FieldByName(condition)
+	if !compareVal.IsValid() {
+		return false
+	}
+	return memberVal.String() == compareVal.String()
+}
+
+var CnPhone = func(memberVal reflect.Value, condition string, structVal reflect.Value) bool {
+	regex := regexp.MustCompile(`^1[3456789]\d{9}$`)
+	return regex.MatchString(memberVal.String())
 }
