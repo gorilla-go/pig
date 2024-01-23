@@ -247,3 +247,25 @@ func (c *Request) Bind(t any) {
 		}
 	}
 }
+
+func (c *Request) JsonBind(t any) {
+	ct := c.request.Header.Get("Content-Type")
+	if !strings.Contains(ct, "application/json") {
+		return
+	}
+
+	buf := new(bytes.Buffer)
+	_, err := buf.ReadFrom(c.request.Body)
+	if err != nil {
+		panic(err)
+	}
+
+	if buf.Len() == 0 {
+		return
+	}
+
+	err = json.Unmarshal(buf.Bytes(), t)
+	if err != nil {
+		panic(err)
+	}
+}
