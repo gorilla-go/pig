@@ -68,7 +68,7 @@ func (v *Validator) Validate(s any) error {
 			}
 
 			kv := strings.Split(checkerName, "=")
-			checkerName = kv[0]
+			checkerName = strings.TrimSpace(kv[0])
 			if len(kv) == 1 {
 				if cn, ok := v.Checkers[checkerName]; ok {
 					if cn(pv, "", val) != true {
@@ -78,7 +78,7 @@ func (v *Validator) Validate(s any) error {
 				continue
 			}
 
-			param := kv[1]
+			param := strings.TrimSpace(kv[1])
 			if cn, ok := v.Checkers[checkerName]; ok {
 				if cn(pv, param, val) != true {
 					return errors.New(v.fetchErrorMsg(field))
