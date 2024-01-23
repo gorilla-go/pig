@@ -6,7 +6,7 @@ import (
 )
 
 type Form struct {
-	Username string `json:"username" query:"username" validate:"oneOf=yehua wang" msg:"username is required"`
+	Username string `json:"username" query:"username" validate:"required" msg:"username is required"`
 }
 
 func main() {
