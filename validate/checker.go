@@ -267,3 +267,14 @@ var HSLAColor = func(memberVal reflect.Value, condition string, structVal reflec
 	regex := regexp.MustCompile(`^hsla\((\d{1,3}),(\d{1,3})%,(\d{1,3})%,([01]|0\.\d+)\)$`)
 	return regex.MatchString(memberVal.String())
 }
+
+var OneOf = func(memberVal reflect.Value, condition string, structVal reflect.Value) bool {
+	compile := regexp.MustCompile(`\s+`)
+	strings := compile.Split(condition, -1)
+	for _, s := range strings {
+		if memberVal.String() == s {
+			return true
+		}
+	}
+	return false
+}

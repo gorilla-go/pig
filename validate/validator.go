@@ -45,6 +45,10 @@ func (v *Validator) Validate(s any) error {
 		cna := strings.Split(value, ",")
 		for _, checkerName := range cna {
 			checkerName = strings.TrimSpace(checkerName)
+			if checkerName == "" {
+				continue
+			}
+
 			kv := strings.Split(checkerName, "=")
 			checkerName = kv[0]
 			if len(kv) == 1 {
