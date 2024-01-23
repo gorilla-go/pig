@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gorilla-go/pig"
+	"github.com/gorilla-go/pig/di"
 	"github.com/gorilla-go/pig/validate"
 )
 
@@ -11,6 +13,10 @@ type Form struct {
 	PassAgain string `query:"pass_again" validate:"sameAs=Pass" msg:"两次密码不一致"`
 	Email     string `query:"email" validate:"required,email" msg:"邮箱格式不正确"`
 	Phone     string `query:"phone" validate:"cnPhone" msg:"手机号格式不正确"`
+}
+
+type Service struct {
+	Request *pig.Request `di:""`
 }
 
 func main() {
@@ -28,6 +34,8 @@ func main() {
 	router.GET("/", func(ctx *pig.Context) {
 		form := &Form{}
 		ctx.Request().Bind(form)
+		inject := di.Autowire(ctx.Container(), &Service{})
+		fmt.Println(inject.Request.IsPost())
 		if err := v.Validate(form); err != nil {
 			ctx.Response().Text(err.Error())
 			return

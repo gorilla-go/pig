@@ -172,7 +172,7 @@ func MustInvokeNamed[T any](c *Container, name string) T {
 	return v
 }
 
-func Inject[T any](c *Container, s T) T {
+func Autowire[T any](c *Container, s T) T {
 	v := reflect.ValueOf(s)
 	t := v.Type()
 	if t.Kind() == reflect.Ptr {
@@ -186,7 +186,7 @@ func Inject[T any](c *Container, s T) T {
 
 	for i := 0; i < v.NumField(); i++ {
 		field := v.Type().Field(i)
-		tag, ok := field.Tag.Lookup("id")
+		tag, ok := field.Tag.Lookup("di")
 		if !ok {
 			continue
 		}
