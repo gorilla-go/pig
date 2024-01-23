@@ -210,8 +210,20 @@ func (c *Request) IsAjax() bool {
 	return c.request.Header.Get("X-Requested-With") == "XMLHttpRequest"
 }
 
+func (c *Request) IsGet() bool {
+	return c.request.Method == "GET"
+}
+
 func (c *Request) IsPost() bool {
 	return c.request.Method == "POST"
+}
+
+func (c *Request) IsPut() bool {
+	return c.request.Method == "PUT"
+}
+
+func (c *Request) IsDelete() bool {
+	return c.request.Method == "DELETE"
 }
 
 func (c *Request) Bind(t any) {
