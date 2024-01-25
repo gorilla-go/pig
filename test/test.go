@@ -3,20 +3,29 @@ package main
 import (
 	"fmt"
 	"github.com/gorilla-go/pig"
+	"github.com/gorilla-go/pig/di"
 )
 
-type User struct {
-	Name string `json:"name"`
-	Age  int    `json:"age"`
+type HttpErrorHandler struct {
+}
+
+func (h *HttpErrorHandler) Handle(a any, context *pig.Context) {
+	fmt.Println(a)
+}
+
+type ErrorCollection struct {
+}
+
+func (m *ErrorCollection) Handle(context *pig.Context, f func(*pig.Context)) {
+	di.ProvideValue[pig.IHttpErrorHandler](context.Container(), &HttpErrorHandler{})
+	f(context)
 }
 
 func main() {
 	r := pig.NewRouter()
-	r.POST("/", func(context *pig.Context) {
-		u := &User{}
-		context.Request().JsonBind(u)
-		fmt.Println(u.Name, u.Age)
+	r.GET("/", func(context *pig.Context) {
+		panic("target error")
 	})
 
-	pig.New().Router(r).Run(8081)
+	pig.New().Use(&ErrorCollection{}).Router(r).Run(8081)
 }
