@@ -5,13 +5,18 @@ import (
 	"github.com/gorilla-go/pig"
 )
 
+type User struct {
+	Name string `json:"name"`
+	Age  int    `json:"age"`
+}
+
 func main() {
 	r := pig.NewRouter()
-	r.GET("/:name/<id:\\d+>", func(context *pig.Context) {
-		fmt.Println(
-			context.Request().ParamVar().TrimString("name"),
-			context.Request().ParamVar().Int("id"),
-		)
+	r.POST("/", func(context *pig.Context) {
+		u := &User{}
+		context.Request().JsonBind(u)
+		fmt.Println(u.Name, u.Age)
 	})
+
 	pig.New().Router(r).Run(8081)
 }

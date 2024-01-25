@@ -22,7 +22,7 @@ type Validator struct {
 func New(m map[string]Checker) *Validator {
 	return &Validator{
 		Checkers:   m,
-		DefaultMsg: "The parameter failed to pass validation.",
+		DefaultMsg: "",
 	}
 }
 

@@ -133,7 +133,10 @@ func (h *ReqParamHelper) Raw() ReqParams {
 }
 
 func (h *ReqParamHelper) Slice(s string) []string {
-	return h.r[s].Slice()
+	if v, ok := h.r[s]; ok {
+		return v.Slice()
+	}
+	return make([]string, 0)
 }
 
 func (h *ReqParamHelper) Int(s string, def ...int) int {

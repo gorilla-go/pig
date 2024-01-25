@@ -89,21 +89,7 @@ func (c *Request) PostVar() *foundation.ReqParamHelper {
 
 		contentType := request.Header.Get("Content-Type")
 		if strings.Contains(contentType, "application/json") {
-			buf := new(bytes.Buffer)
-			_, err := buf.ReadFrom(request.Body)
-			if err != nil {
-				panic(err)
-			}
-
-			j := make(map[string]string)
-			err = json.Unmarshal(buf.Bytes(), &j)
-			if err != nil {
-				panic(err)
-			}
-
-			for n, v := range j {
-				postVar[n] = foundation.NewReqParamV([]string{v})
-			}
+			panic("not support json post.")
 		}
 
 		if strings.Contains(contentType, "multipart/form-data") {
