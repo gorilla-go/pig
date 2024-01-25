@@ -146,16 +146,6 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 	middlewares := make([]IMiddleware, 0)
 
 	r.regRouteMap.ForEach(func(uri string, methodMap *foundation.LinkedHashMap[string, func(*Context)]) bool {
-		ok := methodMap.ContainsKey(requestMethod)
-		if !ok {
-			ok = methodMap.ContainsKey("ANY")
-			if ok {
-				fn = methodMap.Get("ANY")
-			} else {
-				return true
-			}
-		}
-
 		originUri := uri
 		uri = strings.Trim(uri, "/")
 		path = strings.Trim(path, "/")
@@ -164,10 +154,7 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 			strings.Contains(uri, "<") ||
 			strings.Contains(uri, ">")
 		if !patternMode && uri == path {
-			fn = methodMap.Get(requestMethod)
-			if m, ok := r.middlewareMap[r.ReqUniPath(originUri, requestMethod)]; ok {
-				middlewares = m
-			}
+			fn, middlewares = r.findFn(methodMap, originUri, requestMethod)
 			return false
 		}
 
@@ -216,17 +203,33 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 				}
 			}
 
-			fn = methodMap.Get(requestMethod)
-			if m, ok := r.middlewareMap[r.ReqUniPath(originUri, requestMethod)]; ok {
-				middlewares = m
-			}
+			fn, middlewares = r.findFn(methodMap, originUri, requestMethod)
 			return false
 		}
 		return true
 	})
 
-	if r.missRoute != nil {
+	if r.missRoute != nil && fn == nil {
 		return r.missRoute, nil, middlewares
 	}
 	return fn, routerParams, middlewares
+}
+
+func (r *Router) findFn(
+	methodMap *foundation.LinkedHashMap[string, func(*Context)],
+	originUri string,
+	requestMethod string,
+) (fn func(*Context), middlewares []IMiddleware) {
+	if m, ok := r.middlewareMap[r.ReqUniPath(originUri, requestMethod)]; ok {
+		fn = methodMap.Get(requestMethod)
+		middlewares = m
+	}
+
+	if fn == nil {
+		if m, ok := r.middlewareMap[r.ReqUniPath(originUri, "ANY")]; ok {
+			fn = methodMap.Get("ANY")
+			middlewares = m
+		}
+	}
+	return
 }
