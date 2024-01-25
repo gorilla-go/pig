@@ -139,17 +139,6 @@ func (r *Router) Miss(f func(*Context)) *Router {
 	return r
 }
 
-func (r *Router) Debug() {
-	fmt.Println("---------------------- router debug ----------------------")
-	r.regRouteMap.ForEach(func(uri string, methodMap *foundation.LinkedHashMap[string, func(*Context)]) bool {
-		methodMap.ForEach(func(method string, fn func(*Context)) bool {
-			fmt.Println(fmt.Sprintf("%s %s", method, uri))
-			return true
-		})
-		return true
-	})
-}
-
 func (r *Router) Route(path string, requestMethod string) (func(*Context), RouterParams, []IMiddleware) {
 	requestMethod = strings.ToUpper(requestMethod)
 	var fn func(*Context) = nil
