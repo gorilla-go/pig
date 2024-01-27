@@ -11,6 +11,7 @@ import (
 type Response struct {
 	request *http.Request
 	writer  http.ResponseWriter
+	code    int
 }
 
 func NewResponse(w http.ResponseWriter, request *http.Request) *Response {
@@ -65,7 +66,7 @@ func (c *Response) Redirect(uri string, code ...int) {
 
 func (c *Response) Json(o any, code ...int) {
 	httpCode := foundation.DefaultParam(code, http.StatusOK)
-	c.writer.WriteHeader(httpCode)
+	c.Code(httpCode)
 	c.writer.Header().Set("Content-Type", "application/json")
 	marshal, err := json.Marshal(o)
 	if err != nil {
@@ -79,7 +80,7 @@ func (c *Response) Json(o any, code ...int) {
 
 func (c *Response) Text(s string, code ...int) {
 	httpCode := foundation.DefaultParam(code, http.StatusOK)
-	c.writer.WriteHeader(httpCode)
+	c.Code(httpCode)
 	c.writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	_, err := c.writer.Write([]byte(s))
 	if err != nil {
@@ -89,10 +90,19 @@ func (c *Response) Text(s string, code ...int) {
 
 func (c *Response) Html(s string, code ...int) {
 	httpCode := foundation.DefaultParam(code, http.StatusOK)
-	c.writer.WriteHeader(httpCode)
+	c.Code(httpCode)
 	c.writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, err := c.writer.Write([]byte(s))
 	if err != nil {
 		panic(err)
 	}
+}
+
+func (c *Response) Code(code int) {
+	c.code = code
+	c.writer.WriteHeader(code)
+}
+
+func (c *Response) GetCode() int {
+	return c.code
 }
