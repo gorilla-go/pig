@@ -66,7 +66,7 @@ func (c *Response) Redirect(uri string, code ...int) {
 
 func (c *Response) Json(o any, code ...int) {
 	httpCode := foundation.DefaultParam(code, http.StatusOK)
-	c.code(httpCode)
+	c.Code(httpCode)
 	c.writer.Header().Set("Content-Type", "application/json")
 	marshal, err := json.Marshal(o)
 	if err != nil {
@@ -80,7 +80,7 @@ func (c *Response) Json(o any, code ...int) {
 
 func (c *Response) Text(s string, code ...int) {
 	httpCode := foundation.DefaultParam(code, http.StatusOK)
-	c.code(httpCode)
+	c.Code(httpCode)
 	c.writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	_, err := c.writer.Write([]byte(s))
 	if err != nil {
@@ -90,7 +90,7 @@ func (c *Response) Text(s string, code ...int) {
 
 func (c *Response) Html(s string, code ...int) {
 	httpCode := foundation.DefaultParam(code, http.StatusOK)
-	c.code(httpCode)
+	c.Code(httpCode)
 	c.writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, err := c.writer.Write([]byte(s))
 	if err != nil {
@@ -98,7 +98,7 @@ func (c *Response) Html(s string, code ...int) {
 	}
 }
 
-func (c *Response) code(code int) {
+func (c *Response) Code(code int) {
 	c.responseCode = code
 	c.writer.WriteHeader(code)
 }
