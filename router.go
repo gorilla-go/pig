@@ -166,8 +166,8 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 					filepath.Dir(realPath),
 					strings.TrimPrefix(path, uriPrefix),
 				)
-				_, err := os.Stat(file)
-				if err == nil {
+
+				if _, err := os.Stat(file); !os.IsNotExist(err) {
 					return func(context *Context) {
 						fi := NewFile(file)
 						f, err := os.Open(fi.FilePath)
