@@ -3,6 +3,9 @@ package pig
 import (
 	"fmt"
 	"github.com/gorilla-go/pig/foundation"
+	"io"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -13,6 +16,7 @@ type Router struct {
 	regRouteMap     *foundation.LinkedHashMap[string, *foundation.LinkedHashMap[string, func(*Context)]]
 	missRoute       func(*Context)
 	middlewareMap   map[string][]IMiddleware
+	static          map[string]string
 }
 
 type RouterParams foundation.ReqParams
@@ -26,6 +30,7 @@ func NewRouter() *Router {
 			M: make(map[string]*foundation.LinkedHashMap[string, func(*Context)]),
 		},
 		middlewareMap: make(map[string][]IMiddleware),
+		static:        make(map[string]string),
 	}
 }
 
@@ -68,6 +73,14 @@ func (r *Router) addRoute(t string, path string, f func(*Context), middleware []
 
 func (r *Router) ReqUniPath(path, method string) string {
 	return fmt.Sprintf("%s://%s", method, path)
+}
+
+func (r *Router) Static(path string, realPath string) {
+	if r.group != "" {
+		panic("group router nonsupport static files.")
+	}
+
+	r.static[path] = realPath
 }
 
 func (r *Router) GET(path string, f func(*Context), middleware ...IMiddleware) {
@@ -144,6 +157,39 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 	var fn func(*Context) = nil
 	routerParams := make(RouterParams)
 	middlewares := make([]IMiddleware, 0)
+
+	if requestMethod == "GET" && len(r.static) > 0 {
+		for uriPrefix, realPath := range r.static {
+			if strings.HasPrefix(path, uriPrefix) {
+				file := fmt.Sprintf(
+					"%s/%s",
+					filepath.Dir(realPath),
+					strings.TrimPrefix(path, uriPrefix),
+				)
+				_, err := os.Stat(file)
+				if err == nil {
+					return func(context *Context) {
+						fi := NewFile(file)
+						f, err := os.Open(fi.FilePath)
+						if err != nil {
+							panic(err)
+						}
+						defer func() {
+							err := f.Close()
+							if err != nil {
+								panic(err)
+							}
+						}()
+						context.Response().Raw().Header().Set("Content-Type", fi.ContentType)
+						_, err = io.Copy(context.Response().Raw(), f)
+						if err != nil {
+							panic(err)
+						}
+					}, routerParams, middlewares
+				}
+			}
+		}
+	}
 
 	r.regRouteMap.ForEach(func(uri string, methodMap *foundation.LinkedHashMap[string, func(*Context)]) bool {
 		originUri := uri
@@ -232,7 +278,12 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 	})
 
 	if r.missRoute != nil && fn == nil {
-		return r.missRoute, nil, middlewares
+		return r.missRoute, nil, nil
 	}
-	return fn, routerParams, middlewares
+
+	if len(middlewares) > 0 {
+		return fn, routerParams, middlewares
+	}
+
+	return fn, routerParams, nil
 }

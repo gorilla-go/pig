@@ -51,7 +51,7 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 		}
 	}
 
-	if cusMiddleware != nil && len(cusMiddleware) > 0 {
+	if cusMiddleware != nil {
 		k.middleware = cusMiddleware
 	}
 
