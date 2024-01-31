@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/gorilla-go/pig/foundation"
 	"io"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -14,9 +15,18 @@ type Router struct {
 	group           string
 	groupMiddleware []IMiddleware
 	regRouteMap     *foundation.LinkedHashMap[string, *foundation.LinkedHashMap[string, func(*Context)]]
+	routerAliasMap  map[string]*RouterAlias
 	missRoute       func(*Context)
 	middlewareMap   map[string][]IMiddleware
 	static          map[string]string
+}
+
+type RouterAlias struct {
+	name string
+}
+
+func (a *RouterAlias) Name(name string) {
+	a.name = name
 }
 
 type RouterParams foundation.ReqParams
@@ -29,8 +39,9 @@ func NewRouter() *Router {
 			K: make([]string, 0),
 			M: make(map[string]*foundation.LinkedHashMap[string, func(*Context)]),
 		},
-		middlewareMap: make(map[string][]IMiddleware),
-		static:        make(map[string]string),
+		routerAliasMap: make(map[string]*RouterAlias),
+		middlewareMap:  make(map[string][]IMiddleware),
+		static:         make(map[string]string),
 	}
 }
 
@@ -50,6 +61,11 @@ func (r *Router) addRoute(t string, path string, f func(*Context), middleware []
 		}
 
 		path = fmt.Sprintf("%s%s", r.group, path)
+	}
+
+	_, ok := r.routerAliasMap[path]
+	if !ok {
+		r.routerAliasMap[path] = &RouterAlias{}
 	}
 
 	if r.regRouteMap.ContainsKey(path) == false {
@@ -83,44 +99,54 @@ func (r *Router) Static(path string, realPath string) {
 	r.static[path] = realPath
 }
 
-func (r *Router) GET(path string, f func(*Context), middleware ...IMiddleware) {
+func (r *Router) GET(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
 	r.addRoute("GET", path, f, middleware)
+	return r.routerAliasMap[path]
 }
 
-func (r *Router) POST(path string, f func(*Context), middleware ...IMiddleware) {
+func (r *Router) POST(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
 	r.addRoute("POST", path, f, middleware)
+	return r.routerAliasMap[path]
 }
 
-func (r *Router) PUT(path string, f func(*Context), middleware ...IMiddleware) {
+func (r *Router) PUT(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
 	r.addRoute("PUT", path, f, middleware)
+	return r.routerAliasMap[path]
 }
 
-func (r *Router) DELETE(path string, f func(*Context), middleware ...IMiddleware) {
+func (r *Router) DELETE(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
 	r.addRoute("DELETE", path, f, middleware)
+	return r.routerAliasMap[path]
 }
 
-func (r *Router) PATCH(path string, f func(*Context), middleware ...IMiddleware) {
+func (r *Router) PATCH(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
 	r.addRoute("PATCH", path, f, middleware)
+	return r.routerAliasMap[path]
 }
 
-func (r *Router) OPTIONS(path string, f func(*Context), middleware ...IMiddleware) {
+func (r *Router) OPTIONS(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
 	r.addRoute("OPTIONS", path, f, middleware)
+	return r.routerAliasMap[path]
 }
 
-func (r *Router) HEAD(path string, f func(*Context), middleware ...IMiddleware) {
+func (r *Router) HEAD(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
 	r.addRoute("HEAD", path, f, middleware)
+	return r.routerAliasMap[path]
 }
 
-func (r *Router) CONNECT(path string, f func(*Context), middleware ...IMiddleware) {
+func (r *Router) CONNECT(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
 	r.addRoute("CONNECT", path, f, middleware)
+	return r.routerAliasMap[path]
 }
 
-func (r *Router) TRACE(path string, f func(*Context), middleware ...IMiddleware) {
+func (r *Router) TRACE(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
 	r.addRoute("TRACE", path, f, middleware)
+	return r.routerAliasMap[path]
 }
 
-func (r *Router) ANY(path string, f func(*Context), middleware ...IMiddleware) {
+func (r *Router) ANY(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
 	r.addRoute("ANY", path, f, middleware)
+	return r.routerAliasMap[path]
 }
 
 func (r *Router) Group(path string, f func(r *Router), middleware ...IMiddleware) {
@@ -134,7 +160,8 @@ func (r *Router) Group(path string, f func(r *Router), middleware ...IMiddleware
 			K: make([]string, 0),
 			M: make(map[string]*foundation.LinkedHashMap[string, func(*Context)]),
 		},
-		middlewareMap: make(map[string][]IMiddleware),
+		routerAliasMap: make(map[string]*RouterAlias),
+		middlewareMap:  make(map[string][]IMiddleware),
 	}
 	f(router)
 
@@ -145,11 +172,78 @@ func (r *Router) Group(path string, f func(r *Router), middleware ...IMiddleware
 		})
 		return true
 	})
+
+	for s, alias := range router.routerAliasMap {
+		if _, ok := r.routerAliasMap[s]; ok {
+			panic(fmt.Sprintf("router alias %s already exists.", s))
+		}
+		r.routerAliasMap[s] = alias
+	}
 }
 
 func (r *Router) Miss(f func(*Context)) *Router {
 	r.missRoute = f
 	return r
+}
+
+func (r *Router) Url(routerName string, params map[string]any) string {
+alias:
+	for s, alias := range r.routerAliasMap {
+		if alias.name == routerName {
+			if (params == nil || len(params) == 0) && !r.isPatternMode(s) {
+				return s
+			}
+
+			paramsCopy := make(map[string]any)
+			for k, v := range params {
+				paramsCopy[k] = v
+			}
+
+			uriParts := strings.Split(s, "/")
+			for i, part := range uriParts {
+				if len(part) > 4 && part[0] == '<' && part[len(part)-1] == '>' {
+					pathFormatArr := strings.SplitN(part[1:len(part)-1], ":", 2)
+					if len(pathFormatArr) < 2 {
+						continue alias
+					}
+
+					paramName := strings.TrimSpace(pathFormatArr[0])
+					if v, ok := paramsCopy[paramName]; ok {
+						match, err := regexp.Match(strings.TrimSpace(pathFormatArr[1]), []byte(fmt.Sprintf("%v", v)))
+						if err != nil || !match {
+							continue alias
+						}
+						uriParts[i] = fmt.Sprintf("%v", v)
+						delete(paramsCopy, paramName)
+						continue
+					}
+					continue alias
+				}
+
+				if len(part) > 1 && part[0] == ':' {
+					paramName := strings.TrimSpace(part[1:])
+					if v, ok := paramsCopy[paramName]; ok {
+						uriParts[i] = fmt.Sprintf("%v", v)
+						delete(paramsCopy, paramName)
+						continue
+					}
+					continue alias
+				}
+			}
+
+			uv := url.Values{}
+			for k, v := range paramsCopy {
+				uv.Add(k, fmt.Sprintf("%v", v))
+			}
+			query := uv.Encode()
+			if len(query) > 0 {
+				query = "?" + query
+			}
+			return strings.Join(uriParts, "/") + query
+		}
+	}
+
+	panic(fmt.Sprintf("router %s not exists.", routerName))
 }
 
 func (r *Router) Route(path string, requestMethod string) (func(*Context), RouterParams, []IMiddleware) {
@@ -159,36 +253,9 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 	middlewares := make([]IMiddleware, 0)
 
 	if requestMethod == "GET" && len(r.static) > 0 {
-		for uriPrefix, realPath := range r.static {
-			if strings.HasPrefix(path, uriPrefix) {
-				file := fmt.Sprintf(
-					"%s/%s",
-					filepath.Dir(realPath),
-					strings.TrimPrefix(path, uriPrefix),
-				)
-
-				st, err := os.Stat(file)
-				if err == nil && !st.IsDir() {
-					return func(context *Context) {
-						fi := NewFile(file)
-						f, err := os.Open(fi.FilePath)
-						if err != nil {
-							panic(err)
-						}
-						defer func() {
-							err := f.Close()
-							if err != nil {
-								panic(err)
-							}
-						}()
-						context.Response().Raw().Header().Set("Content-Type", fi.ContentType)
-						_, err = io.Copy(context.Response().Raw(), f)
-						if err != nil {
-							panic(err)
-						}
-					}, routerParams, middlewares
-				}
-			}
+		fn = r.fetchStatic(path)
+		if fn != nil {
+			return fn, routerParams, middlewares
 		}
 	}
 
@@ -197,9 +264,7 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 		uri = strings.Trim(uri, "/")
 		path = strings.Trim(path, "/")
 
-		patternMode := strings.Contains(uri, ":") ||
-			strings.Contains(uri, "<") ||
-			strings.Contains(uri, ">")
+		patternMode := r.isPatternMode(uri)
 		if !patternMode && uri == path {
 			if methodMap.ContainsKey(requestMethod) {
 				fn = methodMap.Get(requestMethod)
@@ -224,35 +289,30 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 			}
 
 			for i, part := range uriParts {
+				pathParts[i] = strings.TrimSpace(pathParts[i])
+				part = strings.TrimSpace(part)
+
 				if len(pathParts[i]) == 0 {
 					return true
 				}
 
 				if len(part) > 4 && part[0] == '<' && part[len(part)-1] == '>' {
-					if strings.Contains(pathParts[i], ".") {
-						pathParts[i] = (strings.Split(pathParts[i], "."))[0]
-					}
-
 					pathFormatArr := strings.SplitN(part[1:len(part)-1], ":", 2)
 					if len(pathFormatArr) < 2 {
 						return true
 					}
 
-					regexpStr := strings.TrimSpace(pathFormatArr[1])
-					match, err := regexp.Match(regexpStr, []byte(pathParts[i]))
+					match, err := regexp.Match(strings.TrimSpace(pathFormatArr[1]), []byte(pathParts[i]))
 					if err != nil || !match {
 						return true
 					}
 
-					routerParams[pathFormatArr[0]] = foundation.NewReqParamV([]string{pathParts[i]})
+					routerParams[strings.TrimSpace(pathFormatArr[0])] = foundation.NewReqParamV([]string{pathParts[i]})
 					continue
 				}
 
 				if len(part) > 1 && part[0] == ':' {
-					if strings.Contains(pathParts[i], ".") {
-						pathParts[i] = (strings.Split(pathParts[i], "."))[0]
-					}
-					routerParams[part[1:]] = foundation.NewReqParamV([]string{pathParts[i]})
+					routerParams[strings.TrimSpace(part[1:])] = foundation.NewReqParamV([]string{pathParts[i]})
 					continue
 				}
 
@@ -287,4 +347,45 @@ func (r *Router) Route(path string, requestMethod string) (func(*Context), Route
 	}
 
 	return fn, routerParams, nil
+}
+
+func (r *Router) isPatternMode(uri string) bool {
+	return strings.Contains(uri, ":") ||
+		strings.Contains(uri, "<") ||
+		strings.Contains(uri, ">")
+}
+
+func (r *Router) fetchStatic(path string) func(*Context) {
+	for uriPrefix, realPath := range r.static {
+		if strings.HasPrefix(path, uriPrefix) {
+			file := fmt.Sprintf(
+				"%s/%s",
+				filepath.Dir(realPath),
+				strings.TrimPrefix(path, uriPrefix),
+			)
+
+			st, err := os.Stat(file)
+			if err == nil && !st.IsDir() {
+				return func(context *Context) {
+					fi := NewFile(file)
+					f, err := os.Open(fi.FilePath)
+					if err != nil {
+						panic(err)
+					}
+					defer func() {
+						err := f.Close()
+						if err != nil {
+							panic(err)
+						}
+					}()
+					context.Response().Raw().Header().Set("Content-Type", fi.ContentType)
+					_, err = io.Copy(context.Response().Raw(), f)
+					if err != nil {
+						panic(err)
+					}
+				}
+			}
+		}
+	}
+	return nil
 }
