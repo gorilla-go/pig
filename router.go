@@ -15,18 +15,19 @@ type Router struct {
 	group           string
 	groupMiddleware []IMiddleware
 	regRouteMap     *foundation.LinkedHashMap[string, *foundation.LinkedHashMap[string, func(*Context)]]
-	routerAliasMap  map[string]*RouterAlias
+	routerConfigMap map[string]*RouterConfig
 	missRoute       func(*Context)
 	middlewareMap   map[string][]IMiddleware
 	static          map[string]string
 }
 
-type RouterAlias struct {
-	name string
+type RouterConfig struct {
+	alias string
 }
 
-func (a *RouterAlias) Name(name string) {
-	a.name = name
+func (a *RouterConfig) Name(name string) *RouterConfig {
+	a.alias = name
+	return a
 }
 
 type RouterParams foundation.ReqParams
@@ -39,9 +40,9 @@ func NewRouter() *Router {
 			K: make([]string, 0),
 			M: make(map[string]*foundation.LinkedHashMap[string, func(*Context)]),
 		},
-		routerAliasMap: make(map[string]*RouterAlias),
-		middlewareMap:  make(map[string][]IMiddleware),
-		static:         make(map[string]string),
+		routerConfigMap: make(map[string]*RouterConfig),
+		middlewareMap:   make(map[string][]IMiddleware),
+		static:          make(map[string]string),
 	}
 }
 
@@ -63,9 +64,9 @@ func (r *Router) addRoute(t string, path string, f func(*Context), middleware []
 		path = fmt.Sprintf("%s%s", r.group, path)
 	}
 
-	_, ok := r.routerAliasMap[path]
+	_, ok := r.routerConfigMap[path]
 	if !ok {
-		r.routerAliasMap[path] = &RouterAlias{}
+		r.routerConfigMap[path] = &RouterConfig{}
 	}
 
 	if r.regRouteMap.ContainsKey(path) == false {
@@ -99,54 +100,54 @@ func (r *Router) Static(path string, realPath string) {
 	r.static[path] = realPath
 }
 
-func (r *Router) GET(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
+func (r *Router) GET(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
 	r.addRoute("GET", path, f, middleware)
-	return r.routerAliasMap[path]
+	return r.routerConfigMap[path]
 }
 
-func (r *Router) POST(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
+func (r *Router) POST(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
 	r.addRoute("POST", path, f, middleware)
-	return r.routerAliasMap[path]
+	return r.routerConfigMap[path]
 }
 
-func (r *Router) PUT(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
+func (r *Router) PUT(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
 	r.addRoute("PUT", path, f, middleware)
-	return r.routerAliasMap[path]
+	return r.routerConfigMap[path]
 }
 
-func (r *Router) DELETE(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
+func (r *Router) DELETE(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
 	r.addRoute("DELETE", path, f, middleware)
-	return r.routerAliasMap[path]
+	return r.routerConfigMap[path]
 }
 
-func (r *Router) PATCH(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
+func (r *Router) PATCH(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
 	r.addRoute("PATCH", path, f, middleware)
-	return r.routerAliasMap[path]
+	return r.routerConfigMap[path]
 }
 
-func (r *Router) OPTIONS(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
+func (r *Router) OPTIONS(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
 	r.addRoute("OPTIONS", path, f, middleware)
-	return r.routerAliasMap[path]
+	return r.routerConfigMap[path]
 }
 
-func (r *Router) HEAD(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
+func (r *Router) HEAD(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
 	r.addRoute("HEAD", path, f, middleware)
-	return r.routerAliasMap[path]
+	return r.routerConfigMap[path]
 }
 
-func (r *Router) CONNECT(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
+func (r *Router) CONNECT(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
 	r.addRoute("CONNECT", path, f, middleware)
-	return r.routerAliasMap[path]
+	return r.routerConfigMap[path]
 }
 
-func (r *Router) TRACE(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
+func (r *Router) TRACE(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
 	r.addRoute("TRACE", path, f, middleware)
-	return r.routerAliasMap[path]
+	return r.routerConfigMap[path]
 }
 
-func (r *Router) ANY(path string, f func(*Context), middleware ...IMiddleware) *RouterAlias {
+func (r *Router) ANY(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
 	r.addRoute("ANY", path, f, middleware)
-	return r.routerAliasMap[path]
+	return r.routerConfigMap[path]
 }
 
 func (r *Router) Group(path string, f func(r *Router), middleware ...IMiddleware) {
@@ -160,8 +161,8 @@ func (r *Router) Group(path string, f func(r *Router), middleware ...IMiddleware
 			K: make([]string, 0),
 			M: make(map[string]*foundation.LinkedHashMap[string, func(*Context)]),
 		},
-		routerAliasMap: make(map[string]*RouterAlias),
-		middlewareMap:  make(map[string][]IMiddleware),
+		routerConfigMap: make(map[string]*RouterConfig),
+		middlewareMap:   make(map[string][]IMiddleware),
 	}
 	f(router)
 
@@ -173,11 +174,11 @@ func (r *Router) Group(path string, f func(r *Router), middleware ...IMiddleware
 		return true
 	})
 
-	for s, alias := range router.routerAliasMap {
-		if _, ok := r.routerAliasMap[s]; ok {
+	for s, alias := range router.routerConfigMap {
+		if _, ok := r.routerConfigMap[s]; ok {
 			panic(fmt.Sprintf("router alias %s already exists.", s))
 		}
-		r.routerAliasMap[s] = alias
+		r.routerConfigMap[s] = alias
 	}
 }
 
@@ -187,9 +188,9 @@ func (r *Router) Miss(f func(*Context)) *Router {
 }
 
 func (r *Router) Url(routerName string, params map[string]any) string {
-alias:
-	for s, alias := range r.routerAliasMap {
-		if alias.name == routerName {
+layer:
+	for s, config := range r.routerConfigMap {
+		if config.alias == routerName {
 			if (params == nil || len(params) == 0) && !r.isPatternMode(s) {
 				return s
 			}
@@ -204,20 +205,20 @@ alias:
 				if len(part) > 4 && part[0] == '<' && part[len(part)-1] == '>' {
 					pathFormatArr := strings.SplitN(part[1:len(part)-1], ":", 2)
 					if len(pathFormatArr) < 2 {
-						continue alias
+						continue layer
 					}
 
 					paramName := strings.TrimSpace(pathFormatArr[0])
 					if v, ok := paramsCopy[paramName]; ok {
 						match, err := regexp.Match(strings.TrimSpace(pathFormatArr[1]), []byte(fmt.Sprintf("%v", v)))
 						if err != nil || !match {
-							continue alias
+							continue layer
 						}
 						uriParts[i] = fmt.Sprintf("%v", v)
 						delete(paramsCopy, paramName)
 						continue
 					}
-					continue alias
+					continue layer
 				}
 
 				if len(part) > 1 && part[0] == ':' {
@@ -227,7 +228,7 @@ alias:
 						delete(paramsCopy, paramName)
 						continue
 					}
-					continue alias
+					continue layer
 				}
 			}
 

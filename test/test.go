@@ -10,7 +10,7 @@ func main() {
 	r.GET("/:id", func(ctx *pig.Context) {
 		router := di.MustInvoke[pig.IRouter](ctx.Container())
 		ctx.Response().Text(router.Url("index", map[string]any{
-			"id":   1,
+			"id":   ctx.Request().ParamVar().Int("id"),
 			"name": "pig",
 		}))
 	}).Name("index")
