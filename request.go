@@ -163,7 +163,11 @@ func (c *Request) FileVar() map[string]*File {
 					panic(err)
 				}
 				fileId := node.Generate().Bytes()
-				filename := os.TempDir() + string(fileId) + ext
+				tmp := os.TempDir()
+				if !strings.HasSuffix(tmp, string(filepath.Separator)) {
+					tmp += string(filepath.Separator)
+				}
+				filename := tmp + string(fileId) + ext
 
 				file, err := os.OpenFile(filename, os.O_CREATE|os.O_WRONLY, 0666)
 				if err != nil {
