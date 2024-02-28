@@ -53,7 +53,7 @@ func (f *File) Move(dest string) *File {
 	return f
 }
 
-func (f *File) ArchiveMove(dir string) *File {
+func (f *File) ArchiveMove(dir string) (*File, string) {
 	fileInfo, err := os.Stat(dir)
 	if err != nil {
 		panic(err)
@@ -65,11 +65,11 @@ func (f *File) ArchiveMove(dir string) *File {
 
 	// move
 	now := time.Now()
+	relativePath := fmt.Sprintf("%s/%s", now.Format("200601"), now.Format("02"))
 	destDir := fmt.Sprintf(
-		"%s/%s/%s",
+		"%s/%s",
 		dir,
-		now.Format("200601"),
-		now.Format("02"),
+		relativePath,
 	)
 
 	err = os.MkdirAll(destDir, 0777)
@@ -81,5 +81,5 @@ func (f *File) ArchiveMove(dir string) *File {
 	dest := fmt.Sprintf("%s/%s", destDir, basename)
 	f.Move(dest)
 	f.FilePath = dest
-	return f
+	return f, fmt.Sprintf("%s/%s", relativePath, basename)
 }
