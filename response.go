@@ -111,6 +111,11 @@ func (c *Response) Html(s string, code ...int) {
 	}
 }
 
+func (c *Response) Header(key, value string) *Response {
+	c.Raw().Header().Set(key, value)
+	return c
+}
+
 func (c *Response) Code(code int) {
 	c.responseCode = code
 	c.writer.WriteHeader(code)
