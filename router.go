@@ -97,6 +97,10 @@ func (r *Router) Static(path string, realPath string) {
 		panic("group router nonsupport static files.")
 	}
 
+	if !strings.HasSuffix(realPath, string(filepath.Separator)) {
+		realPath += string(filepath.Separator)
+	}
+
 	r.static[path] = realPath
 }
 

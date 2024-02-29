@@ -69,7 +69,7 @@ func (c *Response) Json(o any, code ...int) {
 	if c.responseCode == 0 {
 		c.Code(httpCode)
 	}
-	c.writer.Header().Set("Content-Type", "application/json")
+	c.writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	marshal, err := json.Marshal(o)
 	if err != nil {
 		panic(err)
