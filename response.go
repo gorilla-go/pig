@@ -66,15 +66,16 @@ func (c *Response) Redirect(uri string, code ...int) {
 }
 
 func (c *Response) Json(o any, code ...int) {
-	httpCode := foundation.DefaultParam(code, http.StatusOK)
-	if c.responseCode == 0 {
-		c.Code(httpCode)
-	}
 	writer := c.Raw()
 	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	marshal, err := json.Marshal(o)
 	if err != nil {
 		panic(err)
+	}
+
+	httpCode := foundation.DefaultParam(code, http.StatusOK)
+	if c.responseCode == 0 {
+		c.Code(httpCode)
 	}
 	_, err = writer.Write(marshal)
 	if err != nil {
@@ -83,12 +84,13 @@ func (c *Response) Json(o any, code ...int) {
 }
 
 func (c *Response) Text(s string, code ...int) {
+	writer := c.Raw()
+	writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
+
 	httpCode := foundation.DefaultParam(code, http.StatusOK)
 	if c.responseCode == 0 {
 		c.Code(httpCode)
 	}
-	writer := c.Raw()
-	writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	_, err := writer.Write([]byte(s))
 	if err != nil {
 		panic(err)
@@ -96,12 +98,13 @@ func (c *Response) Text(s string, code ...int) {
 }
 
 func (c *Response) Html(s string, code ...int) {
+	writer := c.Raw()
+	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
+
 	httpCode := foundation.DefaultParam(code, http.StatusOK)
 	if c.responseCode == 0 {
 		c.Code(httpCode)
 	}
-	writer := c.Raw()
-	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
 	_, err := writer.Write([]byte(s))
 	if err != nil {
 		panic(err)
