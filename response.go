@@ -44,12 +44,13 @@ func (c *Response) Download(file *File, basename string) {
 		}
 	}()
 
-	c.writer.Header().Set("Content-Type", file.ContentType)
-	c.writer.Header().Set(
+	writer := c.Raw()
+	writer.Header().Set("Content-Type", file.ContentType)
+	writer.Header().Set(
 		"Content-Disposition",
 		"attachment; filename="+basename,
 	)
-	_, err = io.Copy(c.writer, f)
+	_, err = io.Copy(writer, f)
 	if err != nil {
 		panic(err)
 	}
@@ -69,12 +70,13 @@ func (c *Response) Json(o any, code ...int) {
 	if c.responseCode == 0 {
 		c.Code(httpCode)
 	}
-	c.writer.Header().Set("Content-Type", "application/json; charset=utf-8")
+	writer := c.Raw()
+	writer.Header().Set("Content-Type", "application/json; charset=utf-8")
 	marshal, err := json.Marshal(o)
 	if err != nil {
 		panic(err)
 	}
-	_, err = c.writer.Write(marshal)
+	_, err = writer.Write(marshal)
 	if err != nil {
 		panic(err)
 	}
@@ -85,8 +87,9 @@ func (c *Response) Text(s string, code ...int) {
 	if c.responseCode == 0 {
 		c.Code(httpCode)
 	}
-	c.writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
-	_, err := c.writer.Write([]byte(s))
+	writer := c.Raw()
+	writer.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	_, err := writer.Write([]byte(s))
 	if err != nil {
 		panic(err)
 	}
@@ -97,8 +100,9 @@ func (c *Response) Html(s string, code ...int) {
 	if c.responseCode == 0 {
 		c.Code(httpCode)
 	}
-	c.writer.Header().Set("Content-Type", "text/html; charset=utf-8")
-	_, err := c.writer.Write([]byte(s))
+	writer := c.Raw()
+	writer.Header().Set("Content-Type", "text/html; charset=utf-8")
+	_, err := writer.Write([]byte(s))
 	if err != nil {
 		panic(err)
 	}
