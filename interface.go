@@ -1,7 +1,9 @@
 package pig
 
+import "github.com/gorilla-go/pig/foundation/constant"
+
 type IRouter interface {
-	Route(path string, method string) (func(*Context), RouterParams, []IMiddleware)
+	Route(path string, method constant.RequestMethod) (func(*Context), RouterParams, []IMiddleware)
 	Url(routerName string, params map[string]any) string
 }
 
