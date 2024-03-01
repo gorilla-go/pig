@@ -3,6 +3,7 @@ package pig
 import (
 	"encoding/json"
 	"github.com/gorilla-go/pig/foundation"
+	"github.com/gorilla-go/pig/param"
 	"io"
 	"net/http"
 	"os"
@@ -25,7 +26,7 @@ func (c *Response) Raw() http.ResponseWriter {
 	return c.writer
 }
 
-func (c *Response) Download(file *File, basename string) {
+func (c *Response) Download(file *param.File, basename string) {
 	// download file
 	_, err := os.Stat(file.FilePath)
 	if err != nil {

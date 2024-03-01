@@ -3,6 +3,7 @@ package pig
 import (
 	"fmt"
 	"github.com/gorilla-go/pig/di"
+	"github.com/gorilla-go/pig/foundation/constant"
 	"log"
 	"net/http"
 	"runtime/debug"
@@ -44,7 +45,7 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 	if k.router == nil {
 		panic("router unset.")
 	}
-	controllerAction, routerParams, cusMiddleware := k.router.Route(req.URL.Path, req.Method)
+	controllerAction, routerParams, cusMiddleware := k.router.Route(req.URL.Path, constant.RequestMethod(req.Method))
 	if controllerAction == nil {
 		controllerAction = func(context *Context) {
 			context.Response().Code(http.StatusNotFound)

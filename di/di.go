@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/gorilla-go/pig/foundation"
+	"github.com/gorilla-go/pig/foundation/injector"
 	"reflect"
 	"strings"
 	"unsafe"
@@ -193,7 +194,7 @@ func Autowire[T any](c *Container, s T) T {
 
 		tag = strings.TrimSpace(tag)
 		if tag != "" {
-			foundation.ServiceInjector(
+			injector.ServiceInjector(
 				field.Type,
 				MustInvokeNamed[any](c, tag),
 				unsafe.Pointer(v.Field(i).UnsafeAddr()),
@@ -205,7 +206,7 @@ func Autowire[T any](c *Container, s T) T {
 		if err != nil {
 			panic(err)
 		}
-		foundation.ServiceInjector(
+		injector.ServiceInjector(
 			field.Type,
 			s,
 			unsafe.Pointer(v.Field(i).UnsafeAddr()),

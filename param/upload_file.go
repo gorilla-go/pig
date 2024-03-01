@@ -1,4 +1,4 @@
-package pig
+package param
 
 import (
 	"fmt"

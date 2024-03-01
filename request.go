@@ -4,7 +4,8 @@ import (
 	"bytes"
 	"encoding/json"
 	"github.com/bwmarrin/snowflake"
-	"github.com/gorilla-go/pig/foundation"
+	"github.com/gorilla-go/pig/foundation/injector"
+	"github.com/gorilla-go/pig/param"
 	"io"
 	"math/rand"
 	"net/http"
@@ -18,16 +19,19 @@ import (
 
 type Request struct {
 	request      *http.Request
-	routerParams RouterParams
-	paramVar     *foundation.ReqParamHelper
+	routerParams *param.RequestParamPairs[*param.RequestParamItems]
+	paramVar     *param.Helper[*param.RequestParamItems]
 	paramOnce    sync.Once
-	postVar      *foundation.ReqParamHelper
+	postVar      *param.Helper[*param.RequestParamItems]
 	postOnce     sync.Once
-	fileVar      map[string]*File
+	fileVar      *param.Helper[*param.File]
 	fileOnce     sync.Once
 }
 
-func NewRequest(req *http.Request, routerParams RouterParams) *Request {
+func NewRequest(
+	req *http.Request,
+	routerParams *param.RequestParamPairs[*param.RequestParamItems],
+) *Request {
 	return &Request{
 		request:      req,
 		routerParams: routerParams,
@@ -38,53 +42,52 @@ func (c *Request) Raw() *http.Request {
 	return c.request
 }
 
-func (c *Request) ParamVar() *foundation.ReqParamHelper {
+func (c *Request) ParamVar() *param.Helper[*param.RequestParamItems] {
 	c.paramOnce.Do(func() {
-		paramVar := make(map[string]*foundation.ReqParamV)
-
-		request := c.request
-		rawQuery := request.URL.RawQuery
+		paramVarPairs := param.NewRequestParamPairs[*param.RequestParamItems]()
+		rawQuery := c.request.URL.RawQuery
 		if rawQuery != "" {
 			kvGroup := strings.Split(rawQuery, "&")
 			for _, kv := range kvGroup {
-				kvArr := strings.Split(kv, "=")
-				if len(kvArr) == 2 {
-					k := strings.TrimSpace(kvArr[0])
-					v := strings.TrimSpace(kvArr[1])
-					if _, ok := paramVar[k]; ok {
-						paramVar[k].SetReqParamAtoms(
-							append(paramVar[k].ReqParamAtoms(), foundation.NewReqParamAtom(v)),
-						)
-						continue
-					}
-					paramVar[k] = foundation.NewReqParamV([]string{v})
+				kvArr := strings.SplitN(kv, "=", 2)
+				k := strings.TrimSpace(kvArr[0])
+				v := strings.TrimSpace(kvArr[1])
+				paramVarPairs.Raw().Set(k, param.NewRequestParamItems([]string{v}))
+			}
+		}
+
+		if c.routerParams != nil {
+			c.routerParams.Raw().ForEach(func(k string, v *param.RequestParamItems) bool {
+				if paramVarPairs.Raw().ContainsKey(k) {
+					paramVarPairs.Raw().MustGet(k).SetParams(
+						append(
+							paramVarPairs.Raw().MustGet(k).GetParams(),
+							param.NewRequestParamItem(v.String()),
+						),
+					)
+					return true
 				}
-			}
+				paramVarPairs.Raw().Set(k, v)
+				return true
+			})
 		}
 
-		routerParams := c.routerParams
-		if routerParams != nil {
-			for n, v := range routerParams {
-				paramVar[n] = v
-			}
-		}
-
-		c.paramVar = foundation.NewReqParamHelper(paramVar)
+		c.paramVar = param.NewParamHelper[*param.RequestParamItems](paramVarPairs)
 	})
 
 	return c.paramVar
 }
 
-func (c *Request) PostVar() *foundation.ReqParamHelper {
+func (c *Request) PostVar() *param.Helper[*param.RequestParamItems] {
 	c.postOnce.Do(func() {
-		postVar := make(map[string]*foundation.ReqParamV)
+		postVarPairs := param.NewRequestParamPairs[*param.RequestParamItems]()
 		request := c.request
 		err := request.ParseForm()
 		if err != nil {
 			panic(err)
 		}
 		for n, v := range request.PostForm {
-			postVar[n] = foundation.NewReqParamV(v)
+			postVarPairs.Raw().Set(n, param.NewRequestParamItems(v))
 		}
 
 		contentType := request.Header.Get("Content-Type")
@@ -92,43 +95,44 @@ func (c *Request) PostVar() *foundation.ReqParamHelper {
 			panic("not support json post.")
 		}
 
-		if strings.Contains(contentType, "multipart/form-data") {
-			if len(postVar) == 0 {
-				multipartReader, err := request.MultipartReader()
+		if postVarPairs.Raw().Len() == 0 &&
+			strings.Contains(contentType, "multipart/form-data") {
+			multipartReader, err := request.MultipartReader()
+			if err != nil {
+				panic(err)
+			}
+			for true {
+				part, err := multipartReader.NextPart()
 				if err != nil {
+					if err == io.EOF {
+						break
+					}
 					panic(err)
 				}
-				for true {
-					part, err := multipartReader.NextPart()
+				fileName := part.FileName()
+				formName := part.FormName()
+				if len(formName) > 0 && fileName == "" {
+					buf := new(bytes.Buffer)
+					_, err := buf.ReadFrom(part)
 					if err != nil {
-						if err == io.EOF {
-							break
-						}
 						panic(err)
 					}
-					fileName := part.FileName()
-					formName := part.FormName()
-					if len(formName) > 0 && fileName == "" {
-						buf := new(bytes.Buffer)
-						_, err := buf.ReadFrom(part)
-						if err != nil {
-							panic(err)
-						}
-						postVar[formName] = foundation.NewReqParamV([]string{buf.String()})
-					}
+					postVarPairs.Raw().Set(
+						formName,
+						param.NewRequestParamItems([]string{buf.String()}),
+					)
 				}
 			}
 		}
 
-		c.postVar = foundation.NewReqParamHelper(postVar)
+		c.postVar = param.NewParamHelper(postVarPairs)
 	})
 	return c.postVar
 }
 
-func (c *Request) FileVar() map[string]*File {
+func (c *Request) FileVar() *param.Helper[*param.File] {
 	c.fileOnce.Do(func() {
 		request := c.request
-		c.fileVar = make(map[string]*File)
 
 		if !strings.Contains(request.Header.Get("Content-Type"), "multipart/form-data") {
 			return
@@ -138,6 +142,8 @@ func (c *Request) FileVar() map[string]*File {
 		if err != nil {
 			return
 		}
+
+		requestPairs := param.NewRequestParamPairs[*param.File]()
 		for true {
 			part, err := multipartReader.NextPart()
 			if err != nil {
@@ -184,14 +190,19 @@ func (c *Request) FileVar() map[string]*File {
 					panic(err)
 				}
 
-				c.fileVar[formName] = &File{
-					FilePath:    filename,
-					ContentType: part.Header.Get("Content-Type"),
-					Basename:    fileName,
-					Ext:         ext,
-				}
+				requestPairs.Raw().Set(
+					formName,
+					&param.File{
+						FilePath:    filename,
+						ContentType: part.Header.Get("Content-Type"),
+						Basename:    fileName,
+						Ext:         ext,
+					},
+				)
 			}
 		}
+
+		c.fileVar = param.NewParamHelper(requestPairs)
 	})
 	return c.fileVar
 }
@@ -236,18 +247,18 @@ func (c *Request) Bind(t any) {
 
 		tag = strings.TrimSpace(field.Tag.Get("form"))
 		if tag != "" {
-			foundation.RequestInjector(
+			injector.RequestInjector(
 				field.Type,
-				(c.PostVar().Raw())[tag],
+				c.postVar.Raw().MustGet(tag),
 				unsafe.Pointer(v.Field(i).UnsafeAddr()),
 			)
 		}
 
 		tag = strings.TrimSpace(field.Tag.Get("query"))
 		if tag != "" {
-			foundation.RequestInjector(
+			injector.RequestInjector(
 				field.Type,
-				(c.ParamVar().Raw())[tag],
+				c.paramVar.Raw().MustGet(tag),
 				unsafe.Pointer(v.Field(i).UnsafeAddr()),
 			)
 		}

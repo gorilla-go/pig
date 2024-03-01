@@ -2,9 +2,9 @@ package pig
 
 import (
 	"fmt"
-	"github.com/gorilla-go/pig/foundation"
 	"github.com/gorilla-go/pig/foundation/constant"
 	"github.com/gorilla-go/pig/foundation/mapping"
+	"github.com/gorilla-go/pig/param"
 	"net/http"
 	"net/url"
 	"os"
@@ -33,8 +33,6 @@ func (a *RouterConfig) Name(name string) *RouterConfig {
 	return a
 }
 
-type RouterParams foundation.ReqParams
-
 func NewRouter() *Router {
 	return &Router{
 		group:           "",
@@ -51,7 +49,7 @@ func (r *Router) addRoute(
 	presetRequestPath string,
 	function func(*Context),
 	middleware []IMiddleware,
-) {
+) *RouterConfig {
 	presetRequestPath = strings.TrimSpace(presetRequestPath)
 	if len(presetRequestPath) == 0 {
 		presetRequestPath = constant.WebSystemSeparator
@@ -76,7 +74,7 @@ func (r *Router) addRoute(
 		r.regRouteMap.Put(presetRequestPath, mapping.NewLinkedHashMap[constant.RequestMethod, func(*Context)]())
 	}
 
-	requestPrefixMap := r.regRouteMap.Get(presetRequestPath)
+	requestPrefixMap := r.regRouteMap.MustGet(presetRequestPath)
 	if requestPrefixMap.ContainsKey(requestMethod) {
 		panic(fmt.Sprintf("router %s already exists.", presetRequestPath))
 	}
@@ -88,13 +86,15 @@ func (r *Router) addRoute(
 	pid := r.RequestPathId(presetRequestPath, requestMethod)
 	if len(middleware) > 0 {
 		r.middlewareMap[pid] = middleware
-		return
+		return r.routerConfigMap[presetRequestPath]
 	}
 
 	if len(r.groupMiddleware) > 0 {
 		r.middlewareMap[pid] = r.groupMiddleware
-		return
+		return r.routerConfigMap[presetRequestPath]
 	}
+
+	return r.routerConfigMap[presetRequestPath]
 }
 
 func (r *Router) RequestPathId(path string, method constant.RequestMethod) string {
@@ -208,10 +208,13 @@ next:
 	panic(fmt.Sprintf("router %s not exists.", routerName))
 }
 
-func (r *Router) Route(path string, requestMethod constant.RequestMethod) (func(*Context), RouterParams, []IMiddleware) {
+func (r *Router) Route(
+	path string,
+	requestMethod constant.RequestMethod,
+) (func(*Context), *param.RequestParamPairs[*param.RequestParamItems], []IMiddleware) {
 	path = strings.TrimSpace(path)
 	var fn func(*Context) = nil
-	routerParams := make(RouterParams)
+	routerParams := param.NewRequestParamPairs[*param.RequestParamItems]()
 	middlewares := make([]IMiddleware, 0)
 
 	// search for static file.
@@ -226,7 +229,7 @@ func (r *Router) Route(path string, requestMethod constant.RequestMethod) (func(
 		patternMode := r.routerConfigMap[presetPath].patternMode
 		if !patternMode && presetPath == path {
 			if methodMap.ContainsKey(requestMethod) {
-				fn = methodMap.Get(requestMethod)
+				fn = methodMap.MustGet(requestMethod)
 				if m, ok := r.middlewareMap[r.RequestPathId(presetPath, requestMethod)]; ok {
 					middlewares = m
 				}
@@ -234,7 +237,7 @@ func (r *Router) Route(path string, requestMethod constant.RequestMethod) (func(
 			}
 
 			if methodMap.ContainsKey(constant.ANY) {
-				fn = methodMap.Get(constant.ANY)
+				fn = methodMap.MustGet(constant.ANY)
 				if m, ok := r.middlewareMap[r.RequestPathId(presetPath, constant.ANY)]; ok {
 					middlewares = m
 				}
@@ -277,12 +280,18 @@ func (r *Router) Route(path string, requestMethod constant.RequestMethod) (func(
 					}
 
 					key := strings.TrimSpace(presetPathParamPair[0])
-					routerParams[key] = foundation.NewReqParamV([]string{pathItem})
+					routerParams.Raw().Set(
+						key,
+						param.NewRequestParamItems([]string{pathItem}),
+					)
 					continue
 				}
 
 				if len(presetPathItem) > 1 && strings.HasPrefix(presetPathItem, ":") {
-					routerParams[presetPathItem[1:]] = foundation.NewReqParamV([]string{pathItem})
+					routerParams.Raw().Set(
+						presetPathItem[1:],
+						param.NewRequestParamItems([]string{pathItem}),
+					)
 					continue
 				}
 
@@ -292,14 +301,14 @@ func (r *Router) Route(path string, requestMethod constant.RequestMethod) (func(
 			}
 
 			if methodMap.ContainsKey(requestMethod) {
-				fn = methodMap.Get(requestMethod)
+				fn = methodMap.MustGet(requestMethod)
 				if m, ok := r.middlewareMap[r.RequestPathId(presetPath, requestMethod)]; ok {
 					middlewares = m
 				}
 				return false
 			}
 
-			fn = methodMap.Get(constant.ANY)
+			fn = methodMap.MustGet(constant.ANY)
 			if m, ok := r.middlewareMap[r.RequestPathId(presetPath, constant.ANY)]; ok {
 				middlewares = m
 			}
@@ -341,51 +350,41 @@ func (r *Router) fetchStatic(path string) func(*Context) {
 }
 
 func (r *Router) GET(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
-	r.addRoute(constant.GET, path, f, middleware)
-	return r.routerConfigMap[path]
+	return r.addRoute(constant.GET, path, f, middleware)
 }
 
 func (r *Router) POST(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
-	r.addRoute(constant.POST, path, f, middleware)
-	return r.routerConfigMap[path]
+	return r.addRoute(constant.POST, path, f, middleware)
 }
 
 func (r *Router) PUT(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
-	r.addRoute(constant.PUT, path, f, middleware)
-	return r.routerConfigMap[path]
+	return r.addRoute(constant.PUT, path, f, middleware)
 }
 
 func (r *Router) DELETE(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
-	r.addRoute(constant.DELETE, path, f, middleware)
-	return r.routerConfigMap[path]
+	return r.addRoute(constant.DELETE, path, f, middleware)
 }
 
 func (r *Router) PATCH(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
-	r.addRoute(constant.PATCH, path, f, middleware)
-	return r.routerConfigMap[path]
+	return r.addRoute(constant.PATCH, path, f, middleware)
 }
 
 func (r *Router) OPTION(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
-	r.addRoute(constant.OPTION, path, f, middleware)
-	return r.routerConfigMap[path]
+	return r.addRoute(constant.OPTION, path, f, middleware)
 }
 
 func (r *Router) HEAD(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
-	r.addRoute(constant.HEAD, path, f, middleware)
-	return r.routerConfigMap[path]
+	return r.addRoute(constant.HEAD, path, f, middleware)
 }
 
 func (r *Router) CONNECT(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
-	r.addRoute(constant.CONNECT, path, f, middleware)
-	return r.routerConfigMap[path]
+	return r.addRoute(constant.CONNECT, path, f, middleware)
 }
 
 func (r *Router) TRACE(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
-	r.addRoute(constant.TRACE, path, f, middleware)
-	return r.routerConfigMap[path]
+	return r.addRoute(constant.TRACE, path, f, middleware)
 }
 
 func (r *Router) ANY(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
-	r.addRoute(constant.ANY, path, f, middleware)
-	return r.routerConfigMap[path]
+	return r.addRoute(constant.ANY, path, f, middleware)
 }

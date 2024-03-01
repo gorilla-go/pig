@@ -1,6 +1,7 @@
 package mapping
 
 import (
+	"fmt"
 	"golang.org/x/exp/constraints"
 	"sort"
 )
@@ -27,8 +28,17 @@ func (t *TreeMap[K, V]) Put(key K, value V) {
 	t.M[key] = value
 }
 
-func (t *TreeMap[K, V]) Get(key K) V {
-	return t.M[key]
+func (t *TreeMap[K, V]) Get(key K) (V, bool) {
+	v, ok := t.M[key]
+	return v, ok
+}
+
+func (t *TreeMap[K, V]) MustGet(key K) V {
+	v, ok := t.M[key]
+	if !ok {
+		panic(fmt.Sprintf("key: %v not found", key))
+	}
+	return v
 }
 
 func (t *TreeMap[K, V]) Keys() []K {
@@ -43,7 +53,7 @@ func (t *TreeMap[K, V]) Values() []V {
 	return values
 }
 
-func (t *TreeMap[K, V]) Size() int {
+func (t *TreeMap[K, V]) Len() int {
 	return len(t.K)
 }
 

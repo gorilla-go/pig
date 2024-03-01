@@ -1,6 +1,7 @@
-package foundation
+package injector
 
 import (
+	"github.com/gorilla-go/pig/param"
 	"github.com/samber/lo"
 	"reflect"
 	"unsafe"
@@ -10,8 +11,8 @@ func ServiceInjector(tp reflect.Type, t any, at unsafe.Pointer) {
 	reflect.NewAt(tp, at).Elem().Set(reflect.ValueOf(t))
 }
 
-func RequestInjector(tp reflect.Type, val *ReqParamV, at unsafe.Pointer) {
-	if val != nil && len(val.ReqParamAtoms()) > 0 && CanInjected(tp.Kind()) {
+func RequestInjector(tp reflect.Type, val *param.RequestParamItems, at unsafe.Pointer) {
+	if val != nil && len(val.GetParams()) > 0 && CanInjected(tp.Kind()) {
 		reflect.NewAt(tp, at).Elem().Set(
 			reflect.ValueOf(ConvertStringToKind(val, tp)),
 		)
@@ -39,7 +40,7 @@ func CanInjected(k reflect.Kind) bool {
 	}, k) != -1
 }
 
-func ConvertStringToKind(s *ReqParamV, k reflect.Type) any {
+func ConvertStringToKind(s *param.RequestParamItems, k reflect.Type) any {
 	switch k.Kind() {
 	case reflect.Bool:
 		return s.Bool()
@@ -69,7 +70,7 @@ func ConvertStringToKind(s *ReqParamV, k reflect.Type) any {
 		return s.Float64()
 	case reflect.Slice:
 		sType := reflect.SliceOf(k.Elem())
-		l := len(s.ReqParamAtoms())
+		l := len(s.GetParams())
 		slice := reflect.MakeSlice(sType, l, l)
 		for i := 0; i < l; i++ {
 			itemType := slice.Index(i).Type()
@@ -78,7 +79,7 @@ func ConvertStringToKind(s *ReqParamV, k reflect.Type) any {
 			}
 			slice.Index(i).Set(reflect.ValueOf(
 				ConvertStringToKind(
-					NewReqParamV([]string{s.ReqParamAtoms()[i].String()}),
+					param.NewRequestParamItems([]string{s.GetParams()[i].String()}),
 					itemType,
 				),
 			))

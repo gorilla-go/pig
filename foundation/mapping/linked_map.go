@@ -1,5 +1,7 @@
 package mapping
 
+import "fmt"
+
 type LinkedHashMap[K comparable, V any] struct {
 	K []K
 	M map[K]V
@@ -17,8 +19,17 @@ func (l *LinkedHashMap[K, V]) Put(key K, value V) {
 	l.M[key] = value
 }
 
-func (l *LinkedHashMap[K, V]) Get(key K) V {
-	return l.M[key]
+func (l *LinkedHashMap[K, V]) Get(key K) (V, bool) {
+	v, ok := l.M[key]
+	return v, ok
+}
+
+func (l *LinkedHashMap[K, V]) MustGet(key K) V {
+	v, ok := l.M[key]
+	if !ok {
+		panic(fmt.Sprintf("key: %v not found", key))
+	}
+	return v
 }
 
 func (l *LinkedHashMap[K, V]) Keys() []K {
@@ -33,7 +44,7 @@ func (l *LinkedHashMap[K, V]) Values() []V {
 	return values
 }
 
-func (l *LinkedHashMap[K, V]) Size() int {
+func (l *LinkedHashMap[K, V]) Len() int {
 	return len(l.K)
 }
 
