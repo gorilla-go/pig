@@ -14,16 +14,12 @@ func NewRequestParamItems(value []string) *RequestParamItems {
 	}
 }
 
-func (r *RequestParamItems) Slice() []string {
-	var s = make([]string, len(r.v))
-	for i, v := range r.v {
-		s[i] = v.String()
-	}
-	return s
+func (r *RequestParamItems) Slice() []*RequestParamItem {
+	return r.v
 }
 
 func (r *RequestParamItems) String() string {
-	return r.v[0].TrimString()
+	return r.v[0].String()
 }
 
 func (r *RequestParamItems) Int() int {
@@ -40,10 +36,6 @@ func (r *RequestParamItems) Float64() float64 {
 
 func (r *RequestParamItems) Bool() bool {
 	return r.v[0].Bool()
-}
-
-func (r *RequestParamItems) Bytes() []byte {
-	return r.v[0].Bytes()
 }
 
 func (r *RequestParamItems) GetParams() []*RequestParamItem {

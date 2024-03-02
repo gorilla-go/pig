@@ -34,7 +34,6 @@ func CanInjected(k reflect.Kind) bool {
 		reflect.Uint64,
 		reflect.Float32,
 		reflect.Float64,
-		reflect.Interface,
 		reflect.Slice,
 		reflect.String,
 	}, k) != -1
@@ -85,8 +84,6 @@ func ConvertStringToKind(s *param.RequestParamItems, k reflect.Type) any {
 			))
 		}
 		return slice.Interface()
-	case reflect.Interface:
-		return s.String()
 	case reflect.String:
 		return s.String()
 	}

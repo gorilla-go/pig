@@ -16,10 +16,6 @@ func NewRequestParamItem(v string) *RequestParamItem {
 }
 
 func (r *RequestParamItem) String() string {
-	return r.v
-}
-
-func (r *RequestParamItem) TrimString() string {
 	return strings.TrimSpace(r.v)
 }
 
@@ -53,8 +49,4 @@ func (r *RequestParamItem) Bool() bool {
 		panic(err)
 	}
 	return i
-}
-
-func (r *RequestParamItem) Bytes() []byte {
-	return []byte(r.v)
 }
