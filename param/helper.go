@@ -24,15 +24,15 @@ func (h *Helper[V]) Raw() *mapping.HashMap[string, V] {
 	return h.pairs.Raw()
 }
 
-func (h *Helper[V]) Slice(s string) ([]string, error) {
+func (h *Helper[V]) Slice(s string) ([]*RequestParamItem, error) {
 	paramPairs := h.Raw()
 	if paramPairs.ContainsKey(s) {
 		return any(paramPairs.MustGet(s)).(*RequestParamItems).Slice(), nil
 	}
-	return make([]string, 0), ParamsUnSet
+	return nil, ParamsUnSet
 }
 
-func (h *Helper[V]) MustSlice(s string) []string {
+func (h *Helper[V]) MustSlice(s string) []*RequestParamItem {
 	paramPairs := h.Raw()
 	if paramPairs.ContainsKey(s) {
 		return any(paramPairs.MustGet(s)).(*RequestParamItems).Slice()
