@@ -26,18 +26,11 @@ func (c *Response) Raw() http.ResponseWriter {
 	return c.writer
 }
 
-func (c *Response) Download(file *param.File, basename string) {
-	// download file
-	_, err := os.Stat(file.FilePath)
-	if err != nil {
-		panic(err)
-	}
-
+func (c *Response) Download(file *param.File, basename string) error {
 	f, err := os.Open(file.FilePath)
 	if err != nil {
-		panic(err)
+		return err
 	}
-
 	defer func() {
 		err := f.Close()
 		if err != nil {
@@ -47,14 +40,13 @@ func (c *Response) Download(file *param.File, basename string) {
 
 	writer := c.Raw()
 	writer.Header().Set("Content-Type", file.ContentType)
-	writer.Header().Set(
-		"Content-Disposition",
-		"attachment; filename="+basename,
-	)
+	writer.Header().Set("Content-Disposition", "attachment; filename="+basename)
+
 	_, err = io.Copy(writer, f)
 	if err != nil {
-		panic(err)
+		return err
 	}
+	return nil
 }
 
 func (c *Response) Redirect(uri string, code ...int) {
