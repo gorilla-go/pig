@@ -98,6 +98,10 @@ func Invoke[T any](c *Container) (T, error) {
 		return a.(T), err
 	}
 
+	if v, ok := c.eager[typeStr]; ok {
+		return v.(T), nil
+	}
+
 	c.locker.Lock()
 	defer c.locker.Unlock()
 	if v, ok := c.eager[typeStr]; ok {
@@ -127,6 +131,10 @@ func InvokeNamed[T any](c *Container, name string) (T, error) {
 			return a.(T), err
 		}
 		return a.(T), nil
+	}
+
+	if v, ok := c.eagerNamed[name]; ok {
+		return c.eager[v].(T), nil
 	}
 
 	c.locker.Lock()
