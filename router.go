@@ -51,17 +51,10 @@ func (r *Router) addRoute(
 	middleware []IMiddleware,
 ) *RouterConfig {
 	presetRequestPath = strings.TrimSpace(presetRequestPath)
-	if len(presetRequestPath) == 0 {
-		presetRequestPath = constant.WebSystemSeparator
-	}
-
 	if strings.HasSuffix(presetRequestPath, constant.WebSystemSeparator) {
 		panic("router path can't end with /")
 	}
-
-	if strings.HasPrefix(presetRequestPath, constant.WebSystemSeparator) {
-		presetRequestPath = presetRequestPath[1:]
-	}
+	presetRequestPath = strings.TrimPrefix(presetRequestPath, constant.WebSystemSeparator)
 
 	if r.group != "" {
 		if strings.HasPrefix(presetRequestPath, constant.WebSystemSeparator) {
@@ -110,6 +103,19 @@ func (r *Router) Static(path string, realPath string) {
 		realPath += constant.FileSystemSeparator
 	}
 
+	// is dir
+	stat, err := os.Stat(realPath)
+	if err != nil {
+		panic(err)
+	}
+	if !stat.IsDir() {
+		panic("static path must be a directory.")
+	}
+
+	path = strings.TrimPrefix(strings.TrimSpace(path), constant.WebSystemSeparator)
+	if !strings.HasSuffix(path, constant.WebSystemSeparator) {
+		path += constant.WebSystemSeparator
+	}
 	r.static[path] = realPath
 }
 
@@ -211,10 +217,10 @@ next:
 func (r *Router) Route(
 	path string,
 	requestMethod constant.RequestMethod,
-) (func(*Context), *param.RequestParamPairs[*param.RequestParamItems], []IMiddleware) {
-	path = strings.TrimSpace(path)
+) (func(*Context), *param.RequestParamPairs[*param.RequestParamItems[string]], []IMiddleware) {
+	path = strings.TrimPrefix(strings.TrimSpace(path), constant.WebSystemSeparator)
 	var fn func(*Context) = nil
-	routerParams := param.NewRequestParamPairs[*param.RequestParamItems]()
+	routerParams := param.NewRequestParamPairs[*param.RequestParamItems[string]]()
 	middlewares := make([]IMiddleware, 0)
 
 	// search for static file.

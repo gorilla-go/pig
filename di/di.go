@@ -92,36 +92,11 @@ func ProvideNew[T any](c *Container, provider Provider, name ...string) {
 }
 
 func Invoke[T any](c *Container) (T, error) {
-	typeStr := typeName(typeToString[T]())
-	if v, ok := c.rebuild[typeStr]; ok {
-		a, err := v.(Provider)(c)
-		return a.(T), err
+	v, err := invokeTypeName[T](c, typeName(typeToString[T]()))
+	if err != nil {
+		return *new(T), err
 	}
-
-	if v, ok := c.eager[typeStr]; ok {
-		return v.(T), nil
-	}
-
-	c.locker.Lock()
-	defer c.locker.Unlock()
-	if v, ok := c.eager[typeStr]; ok {
-		return v.(T), nil
-	}
-
-	if v, ok := c.lazy[typeStr]; ok {
-		t, err := v.(Provider)(c)
-		if err != nil {
-			return t.(T), err
-		}
-
-		if _, ok := c.eager[typeStr]; ok {
-			panic(fmt.Sprintf("DI: type %s already exists", typeStr))
-		}
-		c.eager[typeStr] = t
-		return t.(T), nil
-	}
-
-	return *new(T), errors.New(fmt.Sprintf("DI: type %s not found", typeStr))
+	return v.(T), err
 }
 
 func InvokeNamed[T any](c *Container, name string) (T, error) {
@@ -149,15 +124,10 @@ func InvokeNamed[T any](c *Container, name string) (T, error) {
 			return t.(T), err
 		}
 
-		if _, ok := c.eagerNamed[name]; ok {
-			panic(fmt.Sprintf("DI: name %s already exists", name))
+		if _, ok := c.eager[v]; !ok {
+			c.eager[v] = t
 		}
 
-		if _, ok := c.eager[v]; ok {
-			panic(fmt.Sprintf("DI: type %s already exists", v))
-		}
-
-		c.eager[v] = t
 		c.eagerNamed[name] = v
 		return t.(T), nil
 	}
@@ -210,7 +180,7 @@ func Autowire[T any](c *Container, s T) T {
 			continue
 		}
 
-		s, err := invokeTypeName(c, typeName(field.Type.String()))
+		s, err := invokeTypeName[any](c, typeName(field.Type.String()))
 		if err != nil {
 			panic(err)
 		}
@@ -223,31 +193,33 @@ func Autowire[T any](c *Container, s T) T {
 	return s
 }
 
-func invokeTypeName(c *Container, typeStr typeName) (any, error) {
+func invokeTypeName[T any](c *Container, typeStr typeName) (any, error) {
 	if v, ok := c.rebuild[typeStr]; ok {
-		return v.(Provider)(c)
+		a, err := v.(Provider)(c)
+		return a.(T), err
+	}
+
+	if v, ok := c.eager[typeStr]; ok {
+		return v.(T), nil
 	}
 
 	c.locker.Lock()
 	defer c.locker.Unlock()
 	if v, ok := c.eager[typeStr]; ok {
-		return v, nil
+		return v.(T), nil
 	}
 
 	if v, ok := c.lazy[typeStr]; ok {
 		t, err := v.(Provider)(c)
 		if err != nil {
-			return t, err
+			return t.(T), err
 		}
 
-		if _, ok := c.eager[typeStr]; ok {
-			panic(fmt.Sprintf("DI: type %s already exists", typeStr))
-		}
 		c.eager[typeStr] = t
-		return t, nil
+		return t.(T), nil
 	}
 
-	panic(fmt.Sprintf("DI: type %s not found", typeStr))
+	return *new(T), errors.New(fmt.Sprintf("DI: type %s not found", typeStr))
 }
 
 func typeToString[T any]() string {

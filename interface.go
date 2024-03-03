@@ -6,7 +6,7 @@ import (
 )
 
 type IRouter interface {
-	Route(path string, method constant.RequestMethod) (func(*Context), *param.RequestParamPairs[*param.RequestParamItems], []IMiddleware)
+	Route(path string, method constant.RequestMethod) (func(*Context), *param.RequestParamPairs[*param.RequestParamItems[string]], []IMiddleware)
 	Url(routerName string, params map[string]any) string
 }
 

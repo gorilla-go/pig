@@ -19,18 +19,18 @@ import (
 
 type Request struct {
 	request      *http.Request
-	routerParams *param.RequestParamPairs[*param.RequestParamItems]
-	paramVar     *param.Helper[*param.RequestParamItems]
+	routerParams *param.RequestParamPairs[*param.RequestParamItems[string]]
+	paramVar     *param.Helper[*param.RequestParamItems[string]]
 	paramOnce    sync.Once
-	postVar      *param.Helper[*param.RequestParamItems]
+	postVar      *param.Helper[*param.RequestParamItems[string]]
 	postOnce     sync.Once
-	fileVar      *param.Helper[*param.File]
+	fileVar      *param.Helper[*param.RequestParamItems[*param.File]]
 	fileOnce     sync.Once
 }
 
 func NewRequest(
 	req *http.Request,
-	routerParams *param.RequestParamPairs[*param.RequestParamItems],
+	routerParams *param.RequestParamPairs[*param.RequestParamItems[string]],
 ) *Request {
 	return &Request{
 		request:      req,
@@ -42,9 +42,9 @@ func (c *Request) Raw() *http.Request {
 	return c.request
 }
 
-func (c *Request) ParamVar() *param.Helper[*param.RequestParamItems] {
+func (c *Request) ParamVar() *param.Helper[*param.RequestParamItems[string]] {
 	c.paramOnce.Do(func() {
-		paramVarPairs := param.NewRequestParamPairs[*param.RequestParamItems]()
+		paramVarPairs := param.NewRequestParamPairs[*param.RequestParamItems[string]]()
 		rawQuery := c.request.URL.RawQuery
 		if rawQuery != "" {
 			kvGroup := strings.Split(rawQuery, "&")
@@ -52,12 +52,12 @@ func (c *Request) ParamVar() *param.Helper[*param.RequestParamItems] {
 				kvArr := strings.SplitN(kv, "=", 2)
 				k := strings.TrimSpace(kvArr[0])
 				v := strings.TrimSpace(kvArr[1])
-				paramVarPairs.Raw().Set(k, param.NewRequestParamItems([]string{v}))
+				paramVarPairs.Raw().Set(k, param.NewRequestParamItems[string]([]string{v}))
 			}
 		}
 
 		if c.routerParams != nil {
-			c.routerParams.Raw().ForEach(func(k string, v *param.RequestParamItems) bool {
+			c.routerParams.Raw().ForEach(func(k string, v *param.RequestParamItems[string]) bool {
 				if paramVarPairs.Raw().ContainsKey(k) {
 					paramVarPairs.Raw().MustGet(k).SetParams(
 						append(
@@ -72,22 +72,22 @@ func (c *Request) ParamVar() *param.Helper[*param.RequestParamItems] {
 			})
 		}
 
-		c.paramVar = param.NewParamHelper[*param.RequestParamItems](paramVarPairs)
+		c.paramVar = param.NewParamHelper[*param.RequestParamItems[string]](paramVarPairs)
 	})
 
 	return c.paramVar
 }
 
-func (c *Request) PostVar() *param.Helper[*param.RequestParamItems] {
+func (c *Request) PostVar() *param.Helper[*param.RequestParamItems[string]] {
 	c.postOnce.Do(func() {
-		postVarPairs := param.NewRequestParamPairs[*param.RequestParamItems]()
+		postVarPairs := param.NewRequestParamPairs[*param.RequestParamItems[string]]()
 		request := c.request
 		err := request.ParseForm()
 		if err != nil {
 			panic(err)
 		}
 		for n, v := range request.PostForm {
-			postVarPairs.Raw().Set(n, param.NewRequestParamItems(v))
+			postVarPairs.Raw().Set(n, param.NewRequestParamItems[string](v))
 		}
 
 		contentType := request.Header.Get("Content-Type")
@@ -119,7 +119,7 @@ func (c *Request) PostVar() *param.Helper[*param.RequestParamItems] {
 					}
 					postVarPairs.Raw().Set(
 						formName,
-						param.NewRequestParamItems([]string{buf.String()}),
+						param.NewRequestParamItems[string]([]string{buf.String()}),
 					)
 				}
 			}
@@ -130,7 +130,7 @@ func (c *Request) PostVar() *param.Helper[*param.RequestParamItems] {
 	return c.postVar
 }
 
-func (c *Request) FileVar() *param.Helper[*param.File] {
+func (c *Request) FileVar() *param.Helper[*param.RequestParamItems[*param.File]] {
 	c.fileOnce.Do(func() {
 		request := c.request
 
@@ -143,7 +143,7 @@ func (c *Request) FileVar() *param.Helper[*param.File] {
 			return
 		}
 
-		requestPairs := param.NewRequestParamPairs[*param.File]()
+		requestPairs := param.NewRequestParamPairs[*param.RequestParamItems[*param.File]]()
 		for true {
 			part, err := multipartReader.NextPart()
 			if err != nil {
@@ -190,14 +190,27 @@ func (c *Request) FileVar() *param.Helper[*param.File] {
 					panic(err)
 				}
 
+				f := &param.File{
+					FilePath:    filename,
+					ContentType: part.Header.Get("Content-Type"),
+					Basename:    fileName,
+					Ext:         ext,
+				}
+				if requestPairs.Raw().ContainsKey(formName) {
+					var fileSlice []*param.File
+					for _, r := range requestPairs.Raw().MustGet(formName).GetParams() {
+						fileSlice = append(fileSlice, r.File())
+					}
+					requestPairs.Raw().Set(
+						formName,
+						param.NewRequestParamItems[*param.File](append(fileSlice, f)),
+					)
+					continue
+				}
+
 				requestPairs.Raw().Set(
 					formName,
-					&param.File{
-						FilePath:    filename,
-						ContentType: part.Header.Get("Content-Type"),
-						Basename:    fileName,
-						Ext:         ext,
-					},
+					param.NewRequestParamItems[*param.File]([]*param.File{f}),
 				)
 			}
 		}

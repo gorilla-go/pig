@@ -11,7 +11,7 @@ func ServiceInjector(tp reflect.Type, t any, at unsafe.Pointer) {
 	reflect.NewAt(tp, at).Elem().Set(reflect.ValueOf(t))
 }
 
-func RequestInjector(tp reflect.Type, val *param.RequestParamItems, at unsafe.Pointer) {
+func RequestInjector(tp reflect.Type, val *param.RequestParamItems[string], at unsafe.Pointer) {
 	if val != nil && len(val.GetParams()) > 0 && CanInjected(tp.Kind()) {
 		reflect.NewAt(tp, at).Elem().Set(
 			reflect.ValueOf(ConvertStringToKind(val, tp)),
@@ -39,7 +39,7 @@ func CanInjected(k reflect.Kind) bool {
 	}, k) != -1
 }
 
-func ConvertStringToKind(s *param.RequestParamItems, k reflect.Type) any {
+func ConvertStringToKind(s *param.RequestParamItems[string], k reflect.Type) any {
 	switch k.Kind() {
 	case reflect.Bool:
 		return s.Bool()
