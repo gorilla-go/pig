@@ -30,7 +30,7 @@ func (k *Kernel) Through(middleware []IMiddleware) *Kernel {
 func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 	defer func() {
 		if errno := recover(); errno != nil {
-			errorHandler, err := di.Invoke[IHttpErrorHandler](k.context.container)
+			errorHandler, err := di.Invoke[IHttpErrorHandler](k.context.Container())
 			if err != nil {
 				log.Println(fmt.Sprintf("%s\n\r%s", errno, string(debug.Stack())))
 				w.WriteHeader(http.StatusInternalServerError)
@@ -56,10 +56,11 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 		k.middleware = cusMiddleware
 	}
 
-	di.ProvideValue[*Context](k.context.container, k.context)
-	di.ProvideValue[IRouter](k.context.container, k.router)
-	di.ProvideValue[*Request](k.context.container, NewRequest(req, routerParams))
-	di.ProvideValue[*Response](k.context.container, NewResponse(w, req))
+	container := k.context.Container()
+	di.ProvideValue[*Context](container, k.context)
+	di.ProvideValue[IRouter](container, k.router)
+	di.ProvideValue[*Request](container, NewRequest(req, routerParams))
+	di.ProvideValue[*Response](container, NewResponse(w, req))
 
 	pipeline := NewPipeline[*Context]().Send(k.context)
 	for _, middleware := range k.middleware {

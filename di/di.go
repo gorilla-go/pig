@@ -135,7 +135,7 @@ func InvokeNamed[T any](c *Container, name string) (T, error) {
 	return *new(T), errors.New(fmt.Sprintf("DI: name %s not found", name))
 }
 
-func MustInvoke[T any](c *Container, t ...T) T {
+func MustInvoke[T any](c *Container) T {
 	v, err := Invoke[T](c)
 	if err != nil {
 		panic(err)
