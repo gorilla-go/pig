@@ -52,7 +52,7 @@ func (r *Router) addRoute(
 ) *RouterConfig {
 	presetRequestPath = strings.TrimSpace(presetRequestPath)
 	if strings.HasSuffix(presetRequestPath, constant.WebSystemSeparator) {
-		panic("router path can't end with /")
+		presetRequestPath += constant.DefaultResourcePath
 	}
 	presetRequestPath = strings.TrimPrefix(presetRequestPath, constant.WebSystemSeparator)
 
@@ -218,7 +218,12 @@ func (r *Router) Route(
 	path string,
 	requestMethod constant.RequestMethod,
 ) (func(*Context), *param.RequestParamPairs[*param.RequestParamItems[string]], []IMiddleware) {
-	path = strings.TrimPrefix(strings.TrimSpace(path), constant.WebSystemSeparator)
+	path = strings.TrimSpace(path)
+	if strings.HasSuffix(path, constant.WebSystemSeparator) {
+		path += constant.DefaultResourcePath
+	}
+	path = strings.TrimPrefix(path, constant.WebSystemSeparator)
+
 	var fn func(*Context) = nil
 	routerParams := param.NewRequestParamPairs[*param.RequestParamItems[string]]()
 	middlewares := make([]IMiddleware, 0)
@@ -252,12 +257,6 @@ func (r *Router) Route(
 		}
 
 		if patternMode && (methodMap.ContainsKey(requestMethod) || methodMap.ContainsKey(constant.ANY)) {
-			if strings.HasPrefix(path, constant.WebSystemSeparator) {
-				path = path[1:]
-			}
-			if strings.HasSuffix(path, constant.WebSystemSeparator) {
-				path += constant.DefaultWebSystemPath
-			}
 			presetPathParts := strings.Split(presetPath, constant.WebSystemSeparator)
 			pathParts := strings.Split(path, constant.WebSystemSeparator)
 			if len(presetPathParts) != len(pathParts) {

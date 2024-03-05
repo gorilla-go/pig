@@ -191,7 +191,7 @@ func (c *Request) FileVar() *param.Helper[*param.RequestParamItems[*param.File]]
 				}
 
 				f := &param.File{
-					FilePath:    filename,
+					Path:        filename,
 					ContentType: part.Header.Get("Content-Type"),
 					Basename:    fileName,
 					Ext:         ext,

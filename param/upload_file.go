@@ -10,7 +10,7 @@ import (
 
 type File struct {
 	ContentType string
-	FilePath    string
+	Path        string
 	Basename    string
 	Ext         string
 }
@@ -36,7 +36,7 @@ func NewFile(filePath string) *File {
 	contentType := http.DetectContentType(buffer)
 
 	return &File{
-		FilePath:    filePath,
+		Path:        filePath,
 		ContentType: contentType,
 		Basename:    filepath.Base(filePath),
 		Ext:         filepath.Ext(filePath),
@@ -44,12 +44,12 @@ func NewFile(filePath string) *File {
 }
 
 func (f *File) Move(dest string) *File {
-	err := os.Rename(f.FilePath, dest)
+	err := os.Rename(f.Path, dest)
 	if err != nil {
 		panic(err)
 	}
 
-	f.FilePath = dest
+	f.Path = dest
 	return f
 }
 
@@ -77,9 +77,9 @@ func (f *File) ArchiveMove(dir string) (*File, string) {
 		panic(err)
 	}
 
-	basename := filepath.Base(f.FilePath)
+	basename := filepath.Base(f.Path)
 	dest := fmt.Sprintf("%s/%s", destDir, basename)
 	f.Move(dest)
-	f.FilePath = dest
+	f.Path = dest
 	return f, fmt.Sprintf("%s/%s", relativePath, basename)
 }

@@ -27,7 +27,7 @@ func (c *Response) Raw() http.ResponseWriter {
 }
 
 func (c *Response) Download(file *param.File, basename string) error {
-	f, err := os.Open(file.FilePath)
+	f, err := os.Open(file.Path)
 	if err != nil {
 		return err
 	}

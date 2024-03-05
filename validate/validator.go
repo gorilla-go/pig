@@ -27,6 +27,10 @@ func New(m map[string]Checker) *Validator {
 }
 
 func (v *Validator) Validate(s any) error {
+	if len(v.Checkers) == 0 {
+		return nil
+	}
+
 	val := reflect.ValueOf(s)
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
