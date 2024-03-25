@@ -44,7 +44,6 @@ func New() *Validator {
 			"alphaNumericSpace":        AlphaNumericSpace,
 			"alphaNumericDashSpace":    AlphaNumericDashSpace,
 			"alphaNumericDashSpaceDot": AlphaNumericDashSpaceDot,
-			"IP":                       IP,
 			"IPv4":                     IPV4,
 			"IPv6":                     IPV6,
 			"base64":                   Base64,

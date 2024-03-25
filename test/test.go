@@ -7,7 +7,7 @@ import (
 )
 
 type Student struct {
-	age int `query:"id" validate:"max=10,min=1" msg:"无效的年龄参数"`
+	age int `query:"id" validate:"max=10,min=1,oneOf=2|3" msg:"无效的年龄参数"`
 }
 
 func main() {

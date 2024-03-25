@@ -4,6 +4,7 @@ import (
 	"reflect"
 	"regexp"
 	"strconv"
+	"strings"
 )
 
 var Required = func(memberVal reflect.Value, condition string, structVal reflect.Value) bool {
@@ -196,11 +197,6 @@ var AlphaNumericDashSpaceDot = func(memberVal reflect.Value, condition string, s
 	return regex.MatchString(memberVal.String())
 }
 
-var IP = func(memberVal reflect.Value, condition string, structVal reflect.Value) bool {
-	regex := regexp.MustCompile(`^([0-9]{1,3}\.){3}[0-9]{1,3}$`)
-	return regex.MatchString(memberVal.String())
-}
-
 var IPV4 = func(memberVal reflect.Value, condition string, structVal reflect.Value) bool {
 	regex := regexp.MustCompile(`^([0-9]{1,3}\.){3}[0-9]{1,3}$`)
 	return regex.MatchString(memberVal.String())
@@ -257,10 +253,22 @@ var HSLAColor = func(memberVal reflect.Value, condition string, structVal reflec
 }
 
 var OneOf = func(memberVal reflect.Value, condition string, structVal reflect.Value) bool {
-	compile := regexp.MustCompile(`\s+`)
-	strings := compile.Split(condition, -1)
-	for _, s := range strings {
-		if memberVal.String() == s {
+	splits := strings.Split(condition, "|")
+	t := memberVal.Type().Kind()
+	v := ""
+	switch t {
+	case reflect.Int:
+		v = strconv.Itoa(int(memberVal.Int()))
+	case reflect.String:
+		v = memberVal.String()
+	case reflect.Float32, reflect.Float64:
+		v = strconv.FormatFloat(memberVal.Float(), 'f', -1, 64)
+	default:
+		return false
+	}
+
+	for _, s := range splits {
+		if s == v {
 			return true
 		}
 	}
