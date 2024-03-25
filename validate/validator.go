@@ -2,95 +2,142 @@ package validate
 
 import (
 	"errors"
-	"fmt"
 	"github.com/samber/lo"
 	"reflect"
 	"strings"
 )
 
-type Checker func(memberVal reflect.Value, condition string, structVal reflect.Value) bool
-
-type IValidator interface {
-	Validate(any) error
-}
+const DefaultErrorMsg = "validate error"
 
 type Validator struct {
 	Checkers   map[string]Checker
 	DefaultMsg string
 }
 
-func New(m map[string]Checker) *Validator {
+func New() *Validator {
 	return &Validator{
-		Checkers:   m,
-		DefaultMsg: "",
+		Checkers: map[string]Checker{
+			"required":                 Required,
+			"min":                      Min,
+			"max":                      Max,
+			"len":                      Len,
+			"minLen":                   MinLen,
+			"maxLen":                   MaxLen,
+			"email":                    Email,
+			"regex":                    Regex,
+			"alpha":                    Alpha,
+			"alphaNum":                 AlphaNum,
+			"alphaDash":                AlphaDash,
+			"numeric":                  Numeric,
+			"numericDash":              NumericDash,
+			"numericDot":               NumericDot,
+			"numericComma":             NumericComma,
+			"numericDashDot":           NumericDashDot,
+			"alphaNumeric":             AlphaNumeric,
+			"alphaNumericDash":         AlphaNumericDash,
+			"alphaNumericDot":          AlphaNumericDot,
+			"alphaNumericComma":        AlphaNumericComma,
+			"alphaNumericDashDot":      AlphaNumericDashDot,
+			"alphaSpace":               AlphaSpace,
+			"alphaDashSpace":           AlphaDashSpace,
+			"alphaNumericSpace":        AlphaNumericSpace,
+			"alphaNumericDashSpace":    AlphaNumericDashSpace,
+			"alphaNumericDashSpaceDot": AlphaNumericDashSpaceDot,
+			"IP":                       IP,
+			"IPv4":                     IPV4,
+			"IPv6":                     IPV6,
+			"base64":                   Base64,
+			"Base64URL":                Base64URL,
+			"hexadecimal":              Hexadecimal,
+			"hexColor":                 HexColor,
+			"RGBColor":                 RGBColor,
+			"RGBAColor":                RGBAColor,
+			"HSLColor":                 HSLColor,
+			"HSLAColor":                HSLAColor,
+			"oneOf":                    OneOf,
+			"sameAs":                   SameAs,
+			"cnPhone":                  CnPhone,
+		},
+		DefaultMsg: DefaultErrorMsg,
 	}
 }
 
-func (v *Validator) Validate(s any) error {
-	if len(v.Checkers) == 0 {
-		return nil
+func (v *Validator) AddCheckers(cs map[string]Checker) {
+	for s, checker := range cs {
+		v.Checkers[s] = checker
 	}
+}
 
+func (v *Validator) CheckStruct(s any) error {
 	val := reflect.ValueOf(s)
 	if val.Kind() == reflect.Ptr {
 		val = val.Elem()
 	}
 
-	if val.Kind() != reflect.Struct {
-		panic("validate target must be struct or struct pointer.")
-	}
-
-	for i := 0; i < val.NumField(); i++ {
-		pv := val.Field(i)
-		field := val.Type().Field(i)
-		value, ok := field.Tag.Lookup("validate")
-		if !ok || value == "" {
-			continue
-		}
-
-		cna := strings.Split(value, ",")
-		for i, v := range cna {
-			cna[i] = strings.TrimSpace(v)
-		}
-
-		requiredName := ""
-		for n, checker := range v.Checkers {
-			if fmt.Sprintf("%p", checker) == fmt.Sprintf("%p", Required) {
-				requiredName = n
-			}
-		}
-		requiredName = strings.TrimSpace(requiredName)
-		if requiredName != "" &&
-			lo.IndexOf(cna, requiredName) == -1 &&
-			v.Checkers[requiredName](pv, "", val) != true {
-			continue
-		}
-
-		for _, checkerName := range cna {
-			if checkerName == "" {
+	if val.Kind() == reflect.Struct {
+		for i := 0; i < val.NumField(); i++ {
+			pv := val.Field(i)
+			field := val.Type().Field(i)
+			value, ok := field.Tag.Lookup("validate")
+			if !ok || value == "" {
 				continue
 			}
-
-			kv := strings.Split(checkerName, "=")
-			checkerName = strings.TrimSpace(kv[0])
-			if len(kv) == 1 {
-				if cn, ok := v.Checkers[checkerName]; ok {
-					if cn(pv, "", val) != true {
-						return errors.New(v.fetchErrorMsg(field))
-					}
-				}
-				continue
-			}
-
-			param := strings.TrimSpace(kv[1])
-			if cn, ok := v.Checkers[checkerName]; ok {
-				if cn(pv, param, val) != true {
-					return errors.New(v.fetchErrorMsg(field))
-				}
+			if v.doCheck(pv, value, val) == false {
+				return errors.New(v.fetchErrorMsg(field))
 			}
 		}
+
+		return nil
 	}
+
 	return nil
+}
+
+func (v *Validator) CheckVar(s any, validates string) bool {
+	val := reflect.ValueOf(s)
+	if val.Kind() == reflect.Ptr {
+		val = val.Elem()
+	}
+
+	return v.doCheck(val, validates, val)
+}
+
+func (v *Validator) doCheck(pv reflect.Value, validate string, sv reflect.Value) bool {
+	cna := strings.Split(validate, ",")
+	for i, v := range cna {
+		cna[i] = strings.TrimSpace(v)
+	}
+
+	if lo.IndexOf(cna, "required") > 0 &&
+		v.Checkers["required"](pv, "", sv) != true {
+		return false
+	}
+
+	for _, checkerName := range cna {
+		if checkerName == "" || checkerName == "required" {
+			continue
+		}
+
+		kv := strings.Split(checkerName, "=")
+		checkerName = strings.TrimSpace(kv[0])
+		if len(kv) == 1 {
+			if cn, ok := v.Checkers[checkerName]; ok {
+				if cn(pv, "", sv) == false {
+					return false
+				}
+			}
+			continue
+		}
+
+		param := strings.TrimSpace(kv[1])
+		if cn, ok := v.Checkers[checkerName]; ok {
+			if cn(pv, param, sv) == false {
+				return false
+			}
+		}
+	}
+
+	return true
 }
 
 func (v *Validator) fetchErrorMsg(field reflect.StructField) string {
