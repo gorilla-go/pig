@@ -279,6 +279,13 @@ func (r *Router) Route(
 						return true
 					}
 					pregStr := strings.TrimSpace(presetPathParamPair[1])
+					if pregStr[0] != '^' {
+						pregStr = "^" + pregStr
+					}
+
+					if pregStr[len(pregStr)-1] != '$' {
+						pregStr = pregStr + "$"
+					}
 					match, err := regexp.Match(pregStr, []byte(pathItem))
 					if err != nil || !match {
 						return true

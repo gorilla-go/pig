@@ -7,11 +7,12 @@ import (
 	"strings"
 )
 
-const DefaultErrorMsg = "validate error"
-
 type Validator struct {
-	Checkers   map[string]Checker
-	DefaultMsg string
+	Checkers            map[string]Checker
+	StructErrDefaultMsg string
+	StructValidTag      string
+	StructErrMsgTag     string
+	DefaultErrorMsg     string
 }
 
 func New() *Validator {
@@ -58,7 +59,9 @@ func New() *Validator {
 			"sameAs":                   SameAs,
 			"cnPhone":                  CnPhone,
 		},
-		DefaultMsg: DefaultErrorMsg,
+		StructValidTag:      "validate",
+		StructErrDefaultMsg: "invalid param.",
+		StructErrMsgTag:     "msg",
 	}
 }
 
@@ -78,7 +81,7 @@ func (v *Validator) CheckStruct(s any) error {
 		for i := 0; i < val.NumField(); i++ {
 			pv := val.Field(i)
 			field := val.Type().Field(i)
-			value, ok := field.Tag.Lookup("validate")
+			value, ok := field.Tag.Lookup(v.StructValidTag)
 			if !ok || value == "" {
 				continue
 			}
@@ -141,9 +144,9 @@ func (v *Validator) doCheck(pv reflect.Value, validate string, sv reflect.Value)
 }
 
 func (v *Validator) fetchErrorMsg(field reflect.StructField) string {
-	value, ok := field.Tag.Lookup("msg")
+	value, ok := field.Tag.Lookup(v.StructErrMsgTag)
 	if !ok || value == "" {
-		return v.DefaultMsg
+		return v.DefaultErrorMsg
 	}
 	return value
 }
