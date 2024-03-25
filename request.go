@@ -262,7 +262,7 @@ func (c *Request) Bind(t any) {
 		if tag != "" {
 			injector.RequestInjector(
 				field.Type,
-				c.postVar.Raw().MustGet(tag),
+				c.PostVar().Raw().MustGet(tag),
 				unsafe.Pointer(v.Field(i).UnsafeAddr()),
 			)
 		}
@@ -271,7 +271,7 @@ func (c *Request) Bind(t any) {
 		if tag != "" {
 			injector.RequestInjector(
 				field.Type,
-				c.paramVar.Raw().MustGet(tag),
+				c.ParamVar().Raw().MustGet(tag),
 				unsafe.Pointer(v.Field(i).UnsafeAddr()),
 			)
 		}
