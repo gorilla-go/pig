@@ -47,9 +47,8 @@ func (k *Kernel) Handle(w http.ResponseWriter, req *http.Request) {
 	}
 	controllerAction, routerParams, cusMiddleware := k.router.Route(req.URL.Path, constant.RequestMethod(req.Method))
 	if controllerAction == nil {
-		controllerAction = func(context *Context) {
-			context.Response().Code(http.StatusNotFound)
-		}
+		w.WriteHeader(http.StatusNotFound)
+		return
 	}
 
 	if cusMiddleware != nil {
