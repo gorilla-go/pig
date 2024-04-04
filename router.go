@@ -6,7 +6,6 @@ import (
 	"github.com/gorilla-go/pig/foundation/mapping"
 	"github.com/gorilla-go/pig/param"
 	"github.com/samber/lo"
-	"net/url"
 	"regexp"
 	"strings"
 )
@@ -121,73 +120,6 @@ func (r *Router) Group(path string, fn func(r *Router), middleware ...IMiddlewar
 func (r *Router) Miss(f func(*Context)) *Router {
 	r.missRoute = f
 	return r
-}
-
-func (r *Router) Url(routerName string, params map[string]any) string {
-next:
-	for presetPath, config := range r.routerConfigMap {
-		if config.alias != routerName {
-			continue
-		}
-
-		if !config.patternMode {
-			return presetPath
-		}
-
-		paramsCopy := make(map[string]any)
-		for k, v := range params {
-			paramsCopy[k] = v
-		}
-
-		presetPaths := strings.Split(presetPath, constant.WebSystemSeparator)
-		for i, presetPathItem := range presetPaths {
-			presetPathItem = strings.TrimSpace(presetPathItem)
-
-			if len(presetPathItem) > 4 &&
-				strings.HasPrefix(presetPathItem, "<") &&
-				strings.HasSuffix(presetPathItem, ">") {
-				presetPathParamPair := strings.SplitN(presetPathItem[1:len(presetPathItem)-1], ":", 2)
-				if len(presetPathParamPair) < 2 {
-					continue next
-				}
-
-				key := strings.TrimSpace(presetPathParamPair[0])
-				pregStr := strings.TrimSpace(presetPathParamPair[1])
-				if v, ok := paramsCopy[key]; ok {
-					match, err := regexp.Match(pregStr, []byte(fmt.Sprintf("%v", v)))
-					if err != nil || !match {
-						continue next
-					}
-					presetPaths[i] = fmt.Sprintf("%v", v)
-					delete(paramsCopy, key)
-					continue
-				}
-				continue next
-			}
-
-			if len(presetPathItem) > 1 && strings.HasPrefix(presetPathItem, ":") {
-				key := strings.TrimSpace(presetPathItem[1:])
-				if v, ok := paramsCopy[key]; ok {
-					presetPaths[i] = fmt.Sprintf("%v", v)
-					delete(paramsCopy, key)
-					continue
-				}
-				continue next
-			}
-		}
-
-		uv := url.Values{}
-		for k, v := range paramsCopy {
-			uv.Add(k, fmt.Sprintf("%v", v))
-		}
-		query := uv.Encode()
-		if len(query) > 0 {
-			query = "?" + query
-		}
-		return strings.Join(presetPaths, constant.WebSystemSeparator) + query
-	}
-
-	panic(fmt.Sprintf("router %s not exists.", routerName))
 }
 
 func (r *Router) Route(
