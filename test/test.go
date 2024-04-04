@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"github.com/gorilla-go/pig"
-	"github.com/gorilla-go/pig/validate"
 )
 
 type Student struct {
@@ -16,15 +15,10 @@ func main() {
 
 	})
 
-	r.GET("/<id:\\d+>", func(context *pig.Context) {
-		s := &Student{}
-		context.Request().Bind(s)
-		v := validate.New()
-		err := v.CheckStruct(s)
-		if err != nil {
-			fmt.Println(err)
-		}
-		fmt.Println(s.age)
+	r.GET("/test*111/<exp: \\d+>", func(context *pig.Context) {
+		i := context.Request().ParamVar().MustInt("exp")
+		fmt.Println(i)
+		fmt.Println("ok")
 	})
 
 	pig.New().Router(r).Run()

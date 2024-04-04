@@ -5,10 +5,8 @@ import (
 	"github.com/gorilla-go/pig/foundation/constant"
 	"github.com/gorilla-go/pig/foundation/mapping"
 	"github.com/gorilla-go/pig/param"
-	"net/http"
+	"github.com/samber/lo"
 	"net/url"
-	"os"
-	"path/filepath"
 	"regexp"
 	"strings"
 )
@@ -20,7 +18,6 @@ type Router struct {
 	routerConfigMap map[string]*RouterConfig
 	missRoute       func(*Context)
 	middlewareMap   map[string][]IMiddleware
-	static          map[string]string
 }
 
 type RouterConfig struct {
@@ -40,7 +37,6 @@ func NewRouter() *Router {
 		regRouteMap:     mapping.NewLinkedHashMap[string, *mapping.LinkedHashMap[constant.RequestMethod, func(*Context)]](),
 		routerConfigMap: make(map[string]*RouterConfig),
 		middlewareMap:   make(map[string][]IMiddleware),
-		static:          make(map[string]string),
 	}
 }
 
@@ -55,6 +51,11 @@ func (r *Router) addRoute(
 		presetRequestPath += constant.DefaultResourcePath
 	}
 	presetRequestPath = strings.TrimPrefix(presetRequestPath, constant.WebSystemSeparator)
+	for _, item := range strings.Split(presetRequestPath, constant.WebSystemSeparator) {
+		if len(strings.TrimSpace(item)) == 0 {
+			panic(fmt.Sprintf("invalid router %s", presetRequestPath))
+		}
+	}
 
 	if r.group != "" {
 		if strings.HasPrefix(presetRequestPath, constant.WebSystemSeparator) {
@@ -92,31 +93,6 @@ func (r *Router) addRoute(
 
 func (r *Router) RequestPathId(path string, method constant.RequestMethod) string {
 	return fmt.Sprintf("%s://%s", method, path)
-}
-
-func (r *Router) Static(path string, realPath string) {
-	if r.group != "" {
-		panic("group router nonsupport static files.")
-	}
-	realPath = filepath.Clean(realPath)
-	if !strings.HasSuffix(realPath, constant.FileSystemSeparator) {
-		realPath += constant.FileSystemSeparator
-	}
-
-	// is dir
-	stat, err := os.Stat(realPath)
-	if err != nil {
-		panic(err)
-	}
-	if !stat.IsDir() {
-		panic("static path must be a directory.")
-	}
-
-	path = strings.TrimPrefix(strings.TrimSpace(path), constant.WebSystemSeparator)
-	if !strings.HasSuffix(path, constant.WebSystemSeparator) {
-		path += constant.WebSystemSeparator
-	}
-	r.static[path] = realPath
 }
 
 func (r *Router) Group(path string, fn func(r *Router), middleware ...IMiddleware) {
@@ -228,17 +204,10 @@ func (r *Router) Route(
 	routerParams := param.NewRequestParamPairs[*param.RequestParamItems[string]]()
 	middlewares := make([]IMiddleware, 0)
 
-	// search for static file.
-	if requestMethod == constant.GET && len(r.static) > 0 {
-		fn = r.fetchStatic(path)
-		if fn != nil {
-			return fn, routerParams, middlewares
-		}
-	}
-
+	var includedWildcard = lo.IndexOf(strings.Split(path, ""), "*") >= 0
 	r.regRouteMap.ForEach(func(presetPath string, methodMap *mapping.LinkedHashMap[constant.RequestMethod, func(*Context)]) bool {
 		patternMode := r.routerConfigMap[presetPath].patternMode
-		if !patternMode && presetPath == path {
+		if !patternMode && presetPath == path && !includedWildcard {
 			if methodMap.ContainsKey(requestMethod) {
 				fn = methodMap.MustGet(requestMethod)
 				if m, ok := r.middlewareMap[r.RequestPathId(presetPath, requestMethod)]; ok {
@@ -259,15 +228,19 @@ func (r *Router) Route(
 		if patternMode && (methodMap.ContainsKey(requestMethod) || methodMap.ContainsKey(constant.ANY)) {
 			presetPathParts := strings.Split(presetPath, constant.WebSystemSeparator)
 			pathParts := strings.Split(path, constant.WebSystemSeparator)
-			if len(presetPathParts) != len(pathParts) {
+			if len(presetPathParts) != len(pathParts) && !strings.HasSuffix(presetPath, "*") {
 				return true
 			}
 
 			for i, presetPathItem := range presetPathParts {
+				if i > len(pathParts)-1 {
+					return true
+				}
+
 				pathItem := strings.TrimSpace(pathParts[i])
 				presetPathItem = strings.TrimSpace(presetPathItem)
 
-				if len(pathItem) == 0 && len(presetPathItem) > 0 {
+				if len(pathItem) == 0 || lo.IndexOf(strings.Split(pathItem, ""), "*") >= 0 {
 					return true
 				}
 
@@ -278,15 +251,13 @@ func (r *Router) Route(
 					if len(presetPathParamPair) < 2 {
 						return true
 					}
-					pregStr := strings.TrimSpace(presetPathParamPair[1])
-					if pregStr[0] != '^' {
-						pregStr = "^" + pregStr
-					}
+					regexpStr := strings.TrimSpace(presetPathParamPair[1])
+					regexpStr = strings.TrimPrefix(regexpStr, "^")
+					regexpStr = "^" + regexpStr
+					regexpStr = strings.TrimSuffix(regexpStr, "$")
+					regexpStr = regexpStr + "$"
 
-					if pregStr[len(pregStr)-1] != '$' {
-						pregStr = pregStr + "$"
-					}
-					match, err := regexp.Match(pregStr, []byte(pathItem))
+					match, err := regexp.MatchString(regexpStr, pathItem)
 					if err != nil || !match {
 						return true
 					}
@@ -305,6 +276,33 @@ func (r *Router) Route(
 						param.NewRequestParamItems([]string{pathItem}),
 					)
 					continue
+				}
+
+				if lo.IndexOf(strings.Split(presetPathItem, ""), "*") != -1 {
+					presetPathArr := strings.Split(presetPathItem, "*")
+					var presetPathArrTmp []string
+					for _, s := range presetPathArr {
+						s = strings.TrimSpace(s)
+						if len(s) > 0 {
+							presetPathArrTmp = append(
+								presetPathArrTmp,
+								regexp.QuoteMeta(s),
+							)
+						}
+					}
+
+					regexpStr := strings.Join(presetPathArrTmp, ".*")
+					if len(presetPathArrTmp) == 0 {
+						regexpStr = ".*"
+					}
+
+					matched, err := regexp.MatchString(regexpStr, pathItem)
+					if err == nil && matched {
+						if i == (len(presetPathParts)-1) && strings.HasSuffix(presetPathItem, "*") {
+							break
+						}
+						continue
+					}
 				}
 
 				if pathItem != presetPathItem {
@@ -341,24 +339,8 @@ func (r *Router) Route(
 }
 
 func (r *Router) isPatternMode(path string) bool {
-	match, _ := regexp.MatchString("[:<>]", path)
+	match, _ := regexp.MatchString("[:<>*]", path)
 	return match
-}
-
-func (r *Router) fetchStatic(path string) func(*Context) {
-	for staticPathPrefix, realPath := range r.static {
-		if strings.HasPrefix(path, staticPathPrefix) {
-			file := filepath.Join(realPath, filepath.Clean(strings.TrimPrefix(path, staticPathPrefix)))
-
-			st, err := os.Stat(file)
-			if err == nil && !st.IsDir() && strings.HasPrefix(file, realPath) {
-				return func(context *Context) {
-					http.ServeFile(context.Response().Raw(), context.Request().Raw(), file)
-				}
-			}
-		}
-	}
-	return nil
 }
 
 func (r *Router) GET(path string, f func(*Context), middleware ...IMiddleware) *RouterConfig {
